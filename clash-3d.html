@@ -1,0 +1,2351 @@
+<title>Clash Trial 3D</title>
+<style>
+/* layout: full-bleed 3D canvas; HUD corners: vitals top-left, target bar top-center, controls top-right, log bottom-right; blade-lock prompt center; start/death overlays */
+:root{
+  --bg:#0b0a10;
+  --panel:rgba(16,13,22,0.82);
+  --line:rgba(255,255,255,0.09);
+  --fg:#ece6f4;
+  --muted:#958ca8;
+  --hp:#6fd67f;
+  --guard:#ffd166;
+  --enemy:#d0453f;
+  --win:#7fe38a; --even:#ffcf5c; --lose:#ff6b6b;
+  --display:'Cinzel', Georgia, serif;
+  --body:'Barlow', 'Segoe UI', system-ui, sans-serif;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--fg);font-family:var(--body);user-select:none}
+#c{position:fixed;inset:0;display:block;width:100%;height:100%}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;backdrop-filter:blur(6px)}
+.tl{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:16px;width:250px;padding:12px 14px;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;font-variant-numeric:tabular-nums;margin-bottom:4px}
+.track{height:9px;border-radius:5px;background:rgba(255,255,255,0.07);overflow:hidden}
+.thin{height:5px}
+.fill{height:100%;border-radius:5px;width:0}
+.hpfill{background:linear-gradient(90deg,#3f9a52,var(--hp))}
+.guardfill{background:linear-gradient(90deg,#b8862a,var(--guard))}
+.ehp{background:linear-gradient(90deg,#7a1f22,var(--enemy))}
+.target{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);width:min(420px,calc(100vw - 32px));padding:10px 14px;pointer-events:none}
+.target .tname{font-family:var(--display);letter-spacing:.14em;font-size:14px;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.target .tname span{font-family:var(--body);font-size:11px;color:var(--muted);letter-spacing:.06em}
+.target .track + .track{margin-top:4px}
+.tr{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:16px;width:240px;padding:12px 14px;font-size:12px;color:var(--muted);pointer-events:none}
+.tr h1{font-family:var(--display);font-size:14px;letter-spacing:.14em;margin:0 0 8px;color:var(--fg)}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:4px 10px}
+.keys b{color:var(--fg);font-weight:600}
+.log{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));width:300px;display:flex;flex-direction:column;gap:4px;align-items:flex-end;pointer-events:none;font-size:12.5px}
+.log div{background:var(--panel);border:1px solid var(--line);padding:4px 9px;border-radius:6px;color:var(--muted);transition:opacity .4s;text-align:right}
+.log .win{color:var(--win)} .log .even{color:var(--even)} .log .lose{color:var(--lose)} .log .tip{color:var(--fg)}
+.reticle{position:fixed;width:26px;height:26px;margin:-13px 0 0 -13px;border:2px solid rgba(255,209,102,0.85);border-radius:50%;pointer-events:none;box-shadow:0 0 10px rgba(255,209,102,0.4)}
+.reticle::after{content:'';position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;background:#ffd166;border-radius:50%}
+.float{position:fixed;pointer-events:none;font-weight:700;font-size:15px;text-shadow:0 1px 2px rgba(0,0,0,0.8);transform:translate(-50%,-50%);white-space:nowrap}
+.flash{position:fixed;inset:0;pointer-events:none;opacity:0}
+.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.6) 100%);opacity:0;transition:opacity .15s}
+.prompt{position:fixed;left:50%;top:62%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+.prompt b{font-family:var(--display);letter-spacing:.24em;font-size:22px;color:#fff;text-shadow:0 0 18px rgba(255,209,102,0.7)}
+.prompt span{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tug{width:260px;height:10px;border-radius:5px;background:rgba(255,255,255,0.1);position:relative;overflow:hidden;border:1px solid var(--line)}
+.tug i{position:absolute;top:0;bottom:0;left:50%;width:4px;margin-left:-2px;background:#fff;box-shadow:0 0 10px #ffd166}
+.tug::before{content:'';position:absolute;inset:0 50% 0 0;background:rgba(255,107,107,0.25)}
+.tug::after{content:'';position:absolute;inset:0 0 0 50%;background:rgba(127,227,138,0.25)}
+.streak{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);font-family:var(--display);letter-spacing:.2em;font-size:26px;color:#ffe7a3;text-shadow:0 0 20px rgba(255,180,80,0.8);pointer-events:none;opacity:0;transition:opacity .25s}
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,6,12,0.72);padding:16px}
+.card{padding:24px 28px;max-width:470px;width:100%;display:flex;flex-direction:column;gap:12px;text-align:center}
+.card h2{font-family:var(--display);letter-spacing:.18em;margin:0;font-size:clamp(22px,4vw,30px)}
+.card p{margin:0;color:var(--muted);font-size:14px;line-height:1.5}
+.card .keys{text-align:left;font-size:13px;margin:4px auto 0;max-width:340px}
+.card button{appearance:none;font:inherit;font-weight:600;color:#14111a;background:var(--guard);border:0;border-radius:8px;padding:10px 18px;cursor:pointer;align-self:center}
+.card button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.hint{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);padding:6px 14px;font-size:12px;color:var(--muted);pointer-events:none}
+.skills{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;gap:10px;pointer-events:none}
+.slot{min-width:92px;height:62px;padding:0 10px;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;color:var(--muted);text-align:center}
+.slot b{font-family:var(--display);font-size:14px;color:var(--fg)}
+.slot .glow{position:absolute;left:0;right:0;bottom:0;height:3px}
+.slot .cd{position:absolute;inset:0;background:rgba(0,0,0,0.68);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;color:#fff;font-variant-numeric:tabular-nums}
+.slot .lv{position:absolute;top:4px;right:6px;font-size:10px;color:var(--muted)}
+.slot.ready{box-shadow:0 0 14px rgba(255,255,255,0.55)}
+.wound{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center, rgba(120,0,0,0) 45%, rgba(160,10,10,0.9) 100%);opacity:0}
+.banner{position:fixed;left:50%;top:22%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:0;transition:opacity .4s}
+.banner b{display:block;font-family:var(--display);letter-spacing:.2em;font-size:clamp(20px,4vw,30px);color:#fff;text-shadow:0 0 22px rgba(255,209,102,0.7)}
+.banner span{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.loadout{max-width:860px;width:100%;padding:20px;display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 32px);overflow:auto}
+.loadout h2{font-family:var(--display);letter-spacing:.18em;margin:0;font-size:22px;text-align:center}
+.loadout .sub{color:var(--muted);font-size:13px;text-align:center}
+.sk{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.skc{padding:12px 14px;display:flex;flex-direction:column;gap:6px;border-left:3px solid var(--c, #fff)}
+.skc.locked{opacity:0.45}
+.skc .top{display:flex;justify-content:space-between;align-items:baseline}
+.skc h3{margin:0;font-family:var(--display);font-size:15px;letter-spacing:.06em}
+.skc .m{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.skc p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.4}
+.skc .btns{display:flex;gap:6px}
+.skc button,.loadout .close{appearance:none;font:inherit;font-size:12px;font-weight:600;color:var(--fg);background:rgba(255,255,255,0.08);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+.skc button.on{background:var(--guard);color:#14111a}
+.skc button:focus-visible,.loadout .close:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.loadout .close{align-self:center;padding:8px 18px}
+.stats3{display:flex;flex-direction:column;gap:6px}
+.st3{display:grid;grid-template-columns:36px 26px 1fr;align-items:center;column-gap:8px}
+.st3 .k{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.06em}
+.st3 .v{font-weight:600;font-variant-numeric:tabular-nums;font-size:14px;text-align:right}
+.st3 .track{height:4px}
+.st3.pop .v{animation:pop .7s ease-out}
+@keyframes pop{0%{transform:scale(1.8)}100%{transform:scale(1)}}
+.room{font-family:var(--display);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg)}
+.fade{position:fixed;inset:0;background:#000;pointer-events:none;opacity:0;transition:opacity .45s}
+.modes{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.card .alt{background:rgba(255,255,255,0.1);color:var(--fg);border:1px solid var(--line)}
+.hc{display:flex;gap:8px;align-items:center;justify-content:center;font-size:13px;color:var(--muted);cursor:pointer}
+.hc input{accent-color:#ff6b6b;width:16px;height:16px}
+.card .lines{display:grid;grid-template-columns:auto auto;justify-content:center;gap:4px 18px;font-size:14px;font-variant-numeric:tabular-nums}
+.card .lines span:nth-child(odd){color:var(--muted);text-align:right}
+.card .lost{color:var(--lose)}
+@media (max-width:820px){ .tr,.log{display:none} .tl{width:200px} }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+
+<canvas id="c"></canvas>
+<div class="vignette" id="vig"></div>
+<div class="flash" id="flash"></div>
+<div class="reticle" id="reticle" hidden></div>
+<div class="streak" id="streak">EXCHANGE</div>
+
+<div class="tl panel">
+  <div>
+    <div class="label"><span>Health</span><span id="hpText">100 / 100</span></div>
+    <div class="track"><div class="fill hpfill" id="hpFill"></div></div>
+  </div>
+  <div>
+    <div class="label"><span>Guard</span><span id="guardText">0%</span></div>
+    <div class="track thin"><div class="fill guardfill" id="guardFill"></div></div>
+  </div>
+  <div class="label" style="margin:0"><span id="roomLabel" class="room">Arena</span><span>Flasks <b id="flasks">3</b> · Kills <b id="kills">0</b></span></div>
+  <div class="stats3" id="stats3"></div>
+</div>
+<div class="fade" id="fade"></div>
+
+<div class="target panel" id="target" hidden>
+  <div class="tname"><b id="tName">Knight</b><span id="tSub">STR 12</span></div>
+  <div class="track"><div class="fill ehp" id="tHp"></div></div>
+  <div class="track thin"><div class="fill guardfill" id="tPost"></div></div>
+</div>
+
+<div class="tr panel">
+  <h1>Clash Trial 3D</h1>
+  <div class="keys">
+    <b>WASD</b><span>move (strafe when locked)</span>
+    <b>Mouse</b><span>look</span>
+    <b>Tab / M-Click</b><span>lock on / off</span>
+    <b>Q / E</b><span>sword skills · press the other at the end to chain</span>
+    <b>K</b><span>skill loadout (pauses)</span>
+    <b>L-Click</b><span>attack · swing into their swing to clash</span>
+    <b>Rhythm</b><span>L-L-L · L-L-pause-L crush · L-pause-L-L rise + drop</span>
+    <b>R-Click / F</b><span>tap = parry · hold = block</span>
+    <b>Shift</b><span>roll</span>
+    <b>Space</b><span>jump (clears sweeps)</span>
+    <b>1 - 6</b><span>spawn knight · duelist · bulwark · pikeman · shade · brute</span>
+    <b>R</b><span>drink flask · restart when dead</span>
+    <b>M</b><span>mute</span>
+  </div>
+</div>
+
+<div class="prompt" id="prompt" hidden>
+  <b>BLADE LOCK</b>
+  <div class="tug"><i id="tugMark"></i></div>
+  <span>mash left click</span>
+</div>
+
+<div class="log" id="log"></div>
+<div class="hint panel" id="mouseHint" hidden>Click to grab the mouse again</div>
+<div class="skills">
+  <div class="slot panel" id="slotQ"><b>Q</b><span id="nameQ">Sonic Rush</span><i class="lv" id="lvQ">Lv1</i><div class="glow" id="glowQ"></div><div class="cd" id="cdQ" hidden></div></div>
+  <div class="slot panel" id="slotE"><b>E</b><span id="nameE">Four Fangs</span><i class="lv" id="lvE">Lv1</i><div class="glow" id="glowE"></div><div class="cd" id="cdE" hidden></div></div>
+</div>
+<div class="wound" id="wound"></div>
+<div class="banner" id="banner"><b id="bannerMain">NEW SKILL</b><span id="bannerSub">press K to equip</span></div>
+<div class="overlay" id="loadoutOverlay" hidden>
+  <div class="loadout panel">
+    <h2>Sword Skills</h2>
+    <div class="sub">Equip a skill to Q or E. Skills level up when they land: faster windup, shorter freeze, more damage. New skills unlock as you fight.</div>
+    <div class="sk" id="skList"></div>
+    <button class="close" id="closeLoadout" type="button">Back to the fight (K)</button>
+  </div>
+</div>
+
+<div class="overlay" id="startOverlay">
+  <div class="card panel">
+    <h2>3D Feel Test</h2>
+    <p>Swing into their swing right as it releases and the blades collide. Keep winning the timing and it becomes an exchange. Your click rhythm picks the move: pause mid-combo for a guard crush or a rising cut. Spam the same thing and it loses power, and they learn it.</p>
+    <div class="keys">
+      <b>WASD</b><span>move</span><b>Mouse</b><span>look</span><b>Tab</b><span>lock on</span><b>Q / E</b><span>sword skills</span>
+      <b>L-Click</b><span>attack / clash</span><b>R-Click / F</b><span>parry / block</span>
+      <b>Shift</b><span>roll</span><b>Space</b><span>jump</span>
+    </div>
+    <div class="modes">
+      <button id="startBtn" type="button">Begin the Trial</button>
+      <button id="arenaBtn" type="button" class="alt">Arena (endless)</button>
+    </div>
+    <label class="hc"><input type="checkbox" id="hardcore"> Hardcore: one life. Death wipes your stats and skills.</label>
+  </div>
+</div>
+
+<div class="overlay" id="deathOverlay" hidden>
+  <div class="card panel" id="deathCard">
+    <h2>You fell</h2>
+    <p id="deathText">Press R to go again.</p>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+  const rand = (a,b) => a + Math.random() * (b - a);
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const easeIn = t => t * t * t;
+  // overshoot past the end then settle: swings follow through
+  const easeBack = t => { const c1 = 1.9, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+  const TAU = Math.PI * 2;
+  const angDiff = (a, b) => { let d = (b - a) % TAU; if(d > Math.PI) d -= TAU; if(d < -Math.PI) d += TAU; return d; };
+  const turnToward = (a, b, rate) => a + clamp(angDiff(a, b), -rate, rate);
+  const yawTo = (a, b) => Math.atan2(b.x - a.x, b.z - a.z);
+  const dist = (a, b) => Math.hypot(b.x - a.x, b.z - a.z);
+  const ARENA = 12.5;
+  let frameNo = 0;
+
+  // ---------- audio ----------
+  let AC = null, master = null, noiseBuf = null, muted = false;
+  function initAudio(){
+    if(AC){ if(AC.state === 'suspended') AC.resume(); return; }
+    try{
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      const comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 5;
+      master = AC.createGain(); master.gain.value = 0.6; master.connect(comp); comp.connect(AC.destination);
+      noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+      const d = noiseBuf.getChannelData(0); for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }catch(err){ AC = null; }
+  }
+  function noise(t0, dur, o){
+    const src = AC.createBufferSource(); src.buffer = noiseBuf;
+    const f = AC.createBiquadFilter(); f.type = o.type || 'bandpass'; f.Q.value = o.q || 1;
+    f.frequency.setValueAtTime(o.f0, t0); if(o.f1) f.frequency.exponentialRampToValueAtTime(o.f1, t0 + dur);
+    const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.gain, t0 + (o.attack || 0.002)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    src.connect(f); f.connect(g); g.connect(master); src.start(t0, Math.random() * 0.5); src.stop(t0 + dur + 0.05);
+  }
+  function tone(t0, dur, o){
+    const osc = AC.createOscillator(); osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(o.f0, t0); if(o.f1) osc.frequency.exponentialRampToValueAtTime(o.f1, t0 + dur);
+    const g = AC.createGain(); g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(o.gain, t0 + (o.attack || 0.002)); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g); g.connect(master); osc.start(t0); osc.stop(t0 + dur + 0.05);
+  }
+  const SFX = {
+    swing(p){ p = p || 1; const t = AC.currentTime; noise(t, 0.13 + 0.06*p, { f0:500, f1:2400 + 600*p, q:1.4, gain:0.16*p, attack:0.03 }); },
+    hit(p){ p = p || 1; const t = AC.currentTime;
+      tone(t, 0.16 + 0.06*p, { f0:150 + Math.random()*30, f1:40, gain:0.5*Math.min(1.4, p) });
+      noise(t, 0.09 + 0.05*p, { type:'lowpass', f0:2800, f1:280, gain:0.4*p }); noise(t, 0.035, { f0:4200, q:0.8, gain:0.12 }); },
+    heavy(){ const t = AC.currentTime; SFX.hit(1.5); tone(t, 0.45, { f0:85, f1:28, gain:0.55 }); },
+    clang(p, pitch){ p = p || 1; pitch = pitch || 1; const t = AC.currentTime;
+      const base = (470 + Math.random()*140) * pitch, ratios = [1, 2.76, 5.4, 8.93], gains = [0.2, 0.13, 0.08, 0.05];
+      ratios.forEach((r, i) => tone(t, (0.6 - i*0.09) * p, { type:i === 0 ? 'triangle' : 'sine', f0:base*r, f1:base*r*0.985, gain:gains[i]*p, attack:0.001 }));
+      noise(t, 0.04, { type:'highpass', f0:3500, gain:0.28*p }); noise(t, 0.14, { f0:1900, f1:900, q:2, gain:0.12*p }); },
+    // blade on blade: metal ring + low boom + rush of air + grit. gets brighter as the exchange builds
+    collide(k){ k = k || 1; const t = AC.currentTime, s = Math.min(k, 6);
+      SFX.clang(1.1 + s * 0.08, 0.85 + s * 0.07);
+      tone(t, 0.5, { f0:110 + s * 8, f1:34, gain:0.42 + s * 0.03 });
+      noise(t, 0.35, { f0:600, f1:3200, q:0.8, gain:0.1 + s * 0.015, attack:0.01 });
+      noise(t + 0.02, 0.25, { type:'highpass', f0:2500, f1:5000, gain:0.06 }); },
+    clash(){ const t = AC.currentTime; SFX.clang(1.6, 0.8); tone(t, 0.7, { f0:95, f1:32, gain:0.5 }); noise(t, 0.5, { f0:3000, f1:500, q:0.7, gain:0.12 }); noise(t, 0.6, { type:'lowpass', f0:500, f1:90, gain:0.25 }); },
+    grind(){ const t = AC.currentTime; noise(t, 0.09, { type:'highpass', f0:2800 + Math.random() * 1500, gain:0.07 }); tone(t, 0.08, { type:'sawtooth', f0:260 + Math.random() * 60, gain:0.02 }); },
+    deathblow(){ const t = AC.currentTime; tone(t, 1.1, { f0:70, f1:22, gain:0.7 }); noise(t, 0.7, { type:'lowpass', f0:1800, f1:120, gain:0.5 });
+      noise(t, 0.25, { f0:900, f1:5000, q:1.2, gain:0.2, attack:0.01 }); SFX.clang(1.2, 0.6); },
+    block(){ const t = AC.currentTime;
+      [1, 2.3, 3.9].forEach((r, i) => tone(t, 0.16 - i*0.03, { type:'triangle', f0:260*r, f1:240*r, gain:0.16 - i*0.04 }));
+      noise(t, 0.08, { type:'lowpass', f0:1600, f1:300, gain:0.3 }); tone(t, 0.12, { f0:120, f1:60, gain:0.3 }); },
+    hurt(){ const t = AC.currentTime; SFX.hit(1.1); tone(t, 0.14, { type:'sawtooth', f0:190, f1:90, gain:0.07 }); },
+    windup(){ const t = AC.currentTime; noise(t, 0.3, { f0:220, f1:520, q:2, gain:0.07, attack:0.08 }); tone(t, 0.35, { f0:70, f1:96, gain:0.07, attack:0.1 }); },
+    windSweep(){ const t = AC.currentTime; noise(t, 0.45, { type:'highpass', f0:1800, f1:3200, gain:0.06, attack:0.15 }); tone(t, 0.4, { f0:60, f1:45, gain:0.08, attack:0.1 }); },
+    windThrust(){ const t = AC.currentTime; noise(t, 0.28, { f0:900, f1:2600, q:3, gain:0.08, attack:0.2 }); },
+    dodge(){ const t = AC.currentTime; noise(t, 0.22, { f0:300, f1:1300, q:1, gain:0.12, attack:0.02 }); },
+    step(){ const t = AC.currentTime; noise(t, 0.05, { type:'lowpass', f0:500, f1:150, gain:0.05 }); },
+    land(){ const t = AC.currentTime; noise(t, 0.12, { type:'lowpass', f0:420, f1:120, gain:0.16 }); tone(t, 0.1, { f0:90, f1:50, gain:0.12 }); },
+    fall(){ const t = AC.currentTime; tone(t, 0.5, { f0:110, f1:35, gain:0.35 }); noise(t, 0.3, { type:'lowpass', f0:600, f1:100, gain:0.25 }); },
+    heart(){ const t = AC.currentTime; tone(t, 0.12, { f0:58, f1:40, gain:0.2 }); tone(t + 0.17, 0.12, { f0:52, f1:38, gain:0.13 }); },
+    roar(){ const t = AC.currentTime; noise(t, 1.3, { type:'lowpass', f0:500, f1:140, gain:0.45, attack:0.08 }); tone(t, 1.1, { type:'sawtooth', f0:72, f1:52, gain:0.14, attack:0.06 }); tone(t, 1.0, { f0:48, f1:30, gain:0.4 }); },
+    drink(){ const t = AC.currentTime; [0, 0.13, 0.26].forEach(d => noise(t + d, 0.09, { f0:500, f1:260, q:4, gain:0.08 })); },
+    healed(){ const t = AC.currentTime; tone(t, 0.6, { f0:440, f1:660, gain:0.06, attack:0.05 }); tone(t + 0.05, 0.7, { f0:660, f1:880, gain:0.04, attack:0.05 }); },
+    learn(){ const t = AC.currentTime; [523, 659, 784, 1047].forEach((f, i) => tone(t + i * 0.1, 0.9, { type:'triangle', f0:f, gain:0.07, attack:0.02 })); },
+    crack(){ const t = AC.currentTime; noise(t, 0.12, { type:'highpass', f0:1800, gain:0.25 }); tone(t, 0.18, { type:'square', f0:300, f1:120, gain:0.06 }); SFX.clang(0.5, 1.4); },
+    // sword skill charge: a rising shimmer as the blade lights up
+    skill(p){ p = p || 1; const t = AC.currentTime;
+      tone(t, 0.3, { f0:300 * p, f1:1200 * p, gain:0.07, attack:0.02 });
+      tone(t + 0.04, 0.26, { f0:600 * p, f1:2400 * p, gain:0.035, attack:0.02 });
+      noise(t, 0.3, { type:'highpass', f0:4000, f1:7000, gain:0.05, attack:0.05 }); }
+  };
+  function sfx(name, a, b){ if(!AC || muted) return; try{ SFX[name](a, b); }catch(err){} }
+
+  // ---------- three setup ----------
+  const canvas = $('c');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0b0a10);
+  scene.fog = new THREE.Fog(0x0b0a10, 12, 34);
+  const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 100);
+  const BASE_FOV = 62;
+  function resize(){ renderer.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / Math.max(1, innerHeight); camera.updateProjectionMatrix(); }
+  resize(); addEventListener('resize', resize);
+
+  const hemi = new THREE.HemisphereLight(0x9a8fc4, 0x2a2030, 0.7); scene.add(hemi);
+  const moon = new THREE.DirectionalLight(0xc8d0ff, 0.8);
+  moon.position.set(-8, 16, -6); moon.castShadow = true; moon.shadow.mapSize.set(2048, 2048);
+  Object.assign(moon.shadow.camera, { left:-15, right:15, top:15, bottom:-15, near:1, far:40 });
+  scene.add(moon);
+  (function(){
+    const c = document.createElement('canvas'); c.width = c.height = 512;
+    const g = c.getContext('2d');
+    g.fillStyle = '#2a2232'; g.fillRect(0, 0, 512, 512);
+    for(let y = 0; y < 8; y++) for(let x = 0; x < 8; x++){
+      const v = 34 + Math.random() * 14;
+      g.fillStyle = 'rgb(' + Math.round(v) + ',' + Math.round(v * 0.82) + ',' + Math.round(v * 1.08) + ')';
+      g.fillRect(x * 64 + (y % 2) * 32 + 2, y * 64 + 2, 60, 60);
+    }
+    for(let i = 0; i < 3000; i++){ g.fillStyle = 'rgba(0,0,0,' + Math.random() * 0.15 + ')'; g.fillRect(Math.random() * 512, Math.random() * 512, 2, 2); }
+    const tex = new THREE.CanvasTexture(c); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(6, 6); tex.encoding = THREE.sRGBEncoding;
+    const floor = new THREE.Mesh(new THREE.CircleGeometry(16, 64), new THREE.MeshStandardMaterial({ map:tex, roughness:0.92, metalness:0.05 }));
+    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(ARENA + 0.2, ARENA + 0.45, 64), new THREE.MeshBasicMaterial({ color:0x3b3047 }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.01; scene.add(ring);
+  })();
+  const torches = [];
+  for(let i = 0; i < 12; i++){
+    const a = i / 12 * TAU, r = ARENA + 2;
+    const pil = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 7, 12), new THREE.MeshStandardMaterial({ color:0x1d1826, roughness:0.9 }));
+    pil.position.set(Math.sin(a) * r, 3.5, Math.cos(a) * r); pil.castShadow = true; pil.receiveShadow = true; scene.add(pil);
+    if(i % 2 === 0){
+      const L = new THREE.PointLight(0xffa860, 1.6, 14, 2);
+      L.position.set(Math.sin(a) * (r - 0.7), 2.6, Math.cos(a) * (r - 0.7)); scene.add(L);
+      const flame = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshBasicMaterial({ color:0xffc27a }));
+      flame.position.copy(L.position); scene.add(flame);
+      torches.push({ L, flame, seed:Math.random() * 10 });
+    }
+  }
+
+  // ---------- rig ----------
+  function makeRig(o){
+    const s = o.scale, bulk = o.bulk || 1;
+    const root = new THREE.Group(); scene.add(root);
+    const body = new THREE.Group(); body.position.y = 0.55 * s; root.add(body);
+    const mats = [], parts = [];
+    const MAT = (c, rough, metal, em) => { const m = new THREE.MeshStandardMaterial({ color:c, roughness:rough, metalness:metal }); m.userData.baseEm = em || 0; m.emissive.setHex(m.userData.baseEm); mats.push(m); return m; };
+    const mBody = MAT(o.body, 0.55, 0.35), mDark = MAT(o.dark, 0.8, 0.1), mTrim = MAT(o.trim, 0.35, 0.7), mBlade = MAT(o.blade, 0.18, 0.95), mEye = MAT(0x000000, 0.5, 0, o.eye);
+    const mCape = o.cape ? MAT(o.cape, 0.85, 0.0) : null;
+    const cyl = (r1, r2, h, m, seg) => { const me = new THREE.Mesh(new THREE.CylinderGeometry(r1, r2, h, seg || 10), m); me.castShadow = true; return me; };
+    const thighL = 0.46 * s, shinL = 0.46 * s, legFull = thighL + shinL;
+    const hips = new THREE.Group(); body.add(hips);
+    const legs = [];
+    for(const side of [-1, 1]){
+      const thigh = new THREE.Group(); thigh.position.set(side * 0.13 * s * bulk, 0, 0); hips.add(thigh);
+      const tm = cyl(0.085 * s * bulk, 0.066 * s, thighL, side < 0 ? mBody : mDark); tm.position.y = -thighL / 2; thigh.add(tm);
+      const knee = new THREE.Group(); knee.position.y = -thighL; thigh.add(knee);
+      const kp = new THREE.Mesh(new THREE.SphereGeometry(0.07 * s, 8, 8), mTrim); kp.position.z = 0.03 * s; knee.add(kp);
+      const sm = cyl(0.066 * s, 0.052 * s, shinL, side < 0 ? mBody : mDark); sm.position.y = -shinL / 2; knee.add(sm);
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.12 * s, 0.07 * s, 0.24 * s), mDark); foot.position.set(0, -shinL, 0.05 * s); foot.castShadow = true; knee.add(foot);
+      legs.push({ thigh, knee, side });
+    }
+    const torso = new THREE.Group(); hips.add(torso);
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(0.46 * s * bulk, 0.6 * s, 0.27 * s * bulk), mBody); chest.position.y = 0.3 * s; chest.castShadow = true; torso.add(chest);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.36 * s * bulk, 0.34 * s, 0.05 * s), mTrim); plate.position.set(0, 0.4 * s, 0.14 * s * bulk); torso.add(plate); parts.push(plate);
+    const belt = new THREE.Mesh(new THREE.BoxGeometry(0.48 * s * bulk, 0.07 * s, 0.29 * s * bulk), mTrim); belt.position.y = 0.03 * s; torso.add(belt);
+    for(const side of [-1, 1]){
+      const pd = new THREE.Mesh(new THREE.SphereGeometry(0.12 * s * bulk, 10, 8, 0, TAU, 0, Math.PI / 2), mTrim);
+      pd.position.set(side * 0.29 * s * bulk, 0.56 * s, 0); pd.castShadow = true; torso.add(pd); parts.push(pd);
+    }
+    const head = new THREE.Group(); head.position.y = 0.8 * s; torso.add(head);
+    if(o.helm === 'knight'){
+      const helm = cyl(0.15 * s, 0.16 * s, 0.26 * s, mBody, 14); head.add(helm);
+      const dome = new THREE.Mesh(new THREE.SphereGeometry(0.15 * s, 14, 8, 0, TAU, 0, Math.PI / 2), mBody); dome.position.y = 0.13 * s; dome.castShadow = true; head.add(dome);
+      const crest = new THREE.Mesh(new THREE.BoxGeometry(0.03 * s, 0.12 * s, 0.28 * s), mTrim); crest.position.y = 0.13 * s; dome.add(crest);
+      parts.push(crest, dome); var helmDome = dome;
+      const slit = new THREE.Mesh(new THREE.BoxGeometry(0.2 * s, 0.03 * s, 0.04 * s), mEye); slit.position.set(0, 0.02 * s, 0.145 * s); head.add(slit);
+    } else if(o.helm === 'hood'){
+      const hd = new THREE.Mesh(new THREE.SphereGeometry(0.15 * s, 14, 12), mDark); hd.castShadow = true; head.add(hd);
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(0.12 * s, 0.22 * s, 10), mDark); tip.position.set(0, 0.08 * s, -0.08 * s); tip.rotation.x = -0.9; head.add(tip); parts.push(tip);
+      const eyes = new THREE.Mesh(new THREE.BoxGeometry(0.15 * s, 0.025 * s, 0.04 * s), mEye); eyes.position.set(0, 0.01 * s, 0.13 * s); head.add(eyes);
+    } else {
+      const hd = new THREE.Mesh(new THREE.SphereGeometry(0.14 * s, 14, 12), mBody); hd.castShadow = true; head.add(hd);
+      const band = new THREE.Mesh(new THREE.TorusGeometry(0.142 * s, 0.018 * s, 6, 20), mTrim); band.rotation.x = Math.PI / 2; band.position.y = 0.03 * s; head.add(band);
+      const visor = new THREE.Mesh(new THREE.BoxGeometry(0.17 * s, 0.035 * s, 0.05 * s), mEye); visor.position.set(0, 0.01 * s, 0.12 * s); head.add(visor);
+    }
+    const capeSegs = [];
+    if(mCape){
+      let parent = new THREE.Group(); parent.position.set(0, 0.56 * s, -0.15 * s * bulk); torso.add(parent);
+      const segL = 0.26 * s;
+      for(let i = 0; i < 3; i++){
+        const g = new THREE.Group(); if(i > 0) g.position.y = -segL;
+        parent.add(g);
+        const m = new THREE.Mesh(new THREE.BoxGeometry(0.42 * s * bulk * (1 - i * 0.08), segL, 0.02 * s), mCape); m.position.y = -segL / 2; m.castShadow = true; g.add(m);
+        capeSegs.push(g); parent = g;
+      }
+    }
+    const armLen = 0.58 * s;
+    function arm(side, mat){
+      const g = new THREE.Group(); g.rotation.order = 'YXZ'; g.position.set(side * 0.29 * s * bulk, 0.54 * s, 0); torso.add(g);
+      const m = cyl(0.056 * s, 0.046 * s, armLen, mat); m.rotation.x = Math.PI / 2; m.position.z = armLen / 2; g.add(m);
+      const hand = new THREE.Group(); hand.position.z = armLen; g.add(hand);
+      const fist = new THREE.Mesh(new THREE.SphereGeometry(0.065 * s, 8, 8), mDark); fist.castShadow = true; hand.add(fist);
+      return { g, m, hand };
+    }
+    const armR = arm(-1, mBody), armL = arm(1, mDark);
+    let shieldMesh = null;
+    if(o.shield){
+      shieldMesh = new THREE.Group(); armL.hand.add(shieldMesh);
+      const board = new THREE.Mesh(new THREE.BoxGeometry(0.52 * s, 0.7 * s, 0.06 * s), mTrim); board.castShadow = true; shieldMesh.add(board);
+      const boss = new THREE.Mesh(new THREE.SphereGeometry(0.08 * s, 10, 8), mBlade); boss.position.z = 0.04 * s; shieldMesh.add(boss);
+      const rim = new THREE.Mesh(new THREE.BoxGeometry(0.56 * s, 0.05 * s, 0.07 * s), mDark); rim.position.y = 0.34 * s; shieldMesh.add(rim);
+      shieldMesh.position.z = 0.05 * s;
+    }
+    const sword = new THREE.Group(); sword.rotation.order = 'YXZ'; armR.hand.add(sword);
+    const L = o.wlen * s, ww = o.wwidth || 1;
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.055 * s * ww, 0.014 * s, L), mBlade); blade.position.z = L / 2 + 0.06 * s; blade.castShadow = true; sword.add(blade);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.039 * s * ww, 0.16 * s, 4), mBlade); tip.scale.set(1, 1, 0.3); tip.rotation.x = Math.PI / 2; tip.position.z = L + 0.06 * s + 0.08 * s; sword.add(tip);
+    const fuller = new THREE.Mesh(new THREE.BoxGeometry(0.012 * s, 0.016 * s, L * 0.75), mDark); fuller.position.z = L * 0.42; sword.add(fuller);
+    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.24 * s, 0.035 * s, 0.04 * s), mTrim); guard.position.z = 0.05 * s; sword.add(guard);
+    const grip = cyl(0.02 * s, 0.02 * s, 0.17 * s, mDark, 6); grip.rotation.x = Math.PI / 2; grip.position.z = -0.05 * s; sword.add(grip);
+    const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.033 * s, 8, 8), mTrim); pommel.position.z = -0.14 * s; sword.add(pommel);
+    const baseMark = new THREE.Object3D(); baseMark.position.z = 0.35 * L; sword.add(baseMark);
+    const midMark = new THREE.Object3D(); midMark.position.z = 0.65 * L; sword.add(midMark);
+    const tipMark = new THREE.Object3D(); tipMark.position.z = L + 0.14 * s; sword.add(tipMark);
+    return { root, body, hips, torso, head, legs, armR, armL, sword, baseMark, midMark, tipMark, capeSegs, mats, parts, s, legFull, armLen,
+      twoHand:o.twoHand !== false && !o.shield, shieldMesh, helmDome:typeof helmDome !== 'undefined' ? helmDome : null, leanZ:0 };
+  }
+  function newPose(){ return { lean:0.06, crouch:0.12, armUp:0.35, armYaw:0.35, ext:0.45, tilt:0.9, swordYaw:0, tuck:0, stride:0.15, reach:0 }; }
+  const POSE_KEYS = ['lean','crouch','armUp','armYaw','ext','tilt','swordYaw','tuck','stride','reach'];
+  function blendPose(cur, tgt, r){ for(const k of POSE_KEYS) cur[k] += ((tgt[k] == null ? cur[k] : tgt[k]) - cur[k]) * r; }
+
+  function applyPose(R, p, ph, amt, air, roll){
+    const s = R.s;
+    R.hips.position.y = R.legFull * (1 - p.crouch * 0.33) + Math.abs(Math.sin(ph)) * 0.03 * amt - 0.55 * s;
+    R.body.rotation.x = roll || 0;
+    R.torso.rotation.x = p.lean;
+    const bend = Math.acos(clamp(1 - p.crouch * 0.33, 0.3, 1));
+    for(const L of R.legs){
+      const o = L.side > 0 ? Math.PI : 0;
+      const front = L.side < 0;
+      // stride: front foot plants forward into the swing, back foot pushes
+      let th = -bend + Math.sin(ph + o) * 0.55 * amt + (front ? -0.55 : 0.38) * p.stride;
+      let kn = bend * 2 + Math.max(0, -Math.sin(ph + o)) * 0.7 * amt + (front ? 0.25 : 0.45) * p.stride;
+      if(air){ th = -0.4 - 0.7 * p.tuck + (L.side > 0 ? 0.25 : -0.1); kn = 0.5 + 1.2 * p.tuck; }
+      L.thigh.rotation.x = th; L.knee.rotation.x = kn;
+    }
+    R.armR.g.rotation.set(-p.armUp, -p.armYaw, 0);
+    const extS = 0.55 + 0.45 * p.ext;
+    for(const A of [R.armR, R.armL]){ A.m.scale.y = extS; A.m.position.z = R.armLen * extS / 2; A.hand.position.z = R.armLen * extS; }
+    if(R.twoHand) R.armL.g.rotation.set(-p.armUp * 0.92, -(p.armYaw + 0.55), 0);
+    else if(R.shieldMesh && R.shieldMesh.parent) R.armL.g.rotation.set(-0.2 + p.crouch * 0.25 - (p.reach || 0) * 0.3, -0.5, 0); // shield up in front
+    else { const rc = p.reach || 0; R.armL.g.rotation.set((1.1 - p.stride * 0.6) * (1 - rc) - 0.1 * rc, (-0.2 + p.stride * 0.5) * (1 - rc) + 0.2 * rc, 0); }
+    R.sword.rotation.set(-p.tilt, p.swordYaw, 0);
+  }
+  function setFlash(R, f, glow){
+    for(const m of R.mats){
+      if(f > 0.05){ m.emissive.setHex(0xffffff); m.emissiveIntensity = f * 1.1; }
+      else { m.emissive.setHex(m.userData.baseEm); m.emissiveIntensity = 1; }
+    }
+    if(glow && f <= 0.05){ R.mats[3].emissive.setHex(glow); R.mats[3].emissiveIntensity = 0.9; }
+  }
+  // cape lags behind movement; body leans into strafes and away from hits
+  function secondary(R, ent, lookAt){
+    const fwd = ent.vx * Math.sin(ent.yaw) + ent.vz * Math.cos(ent.yaw);
+    const lat = ent.vx * -Math.cos(ent.yaw) + ent.vz * Math.sin(ent.yaw);
+    R.leanZ += (clamp(lat * 3.5, -0.2, 0.2) + (ent.hitTilt || 0) - R.leanZ) * 0.2;
+    R.root.rotation.z = R.leanZ;
+    if(R.capeSegs.length){
+      const target = clamp(Math.max(0, fwd) * 9 + Math.abs(lat) * 5 + (ent.y > 0.05 ? 0.5 : 0) + Math.max(0, -ent.pose.lean) * 0.6, 0, 1.4) + Math.sin(frameNo * 0.05 + (ent.seed || 0)) * 0.05;
+      R.capeSegs[0].rotation.x += (target * 0.7 - R.capeSegs[0].rotation.x) * 0.14;
+      for(let i = 1; i < R.capeSegs.length; i++) R.capeSegs[i].rotation.x += (target * 0.25 - R.capeSegs[i].rotation.x) * 0.1;
+      R.capeSegs[0].rotation.z = -R.leanZ * 0.8;
+    }
+    if(lookAt){
+      const want = clamp(angDiff(ent.yaw, yawTo(ent, lookAt)), -0.9, 0.9) * 0.7;
+      R.head.rotation.y += (want - R.head.rotation.y) * 0.2;
+    }
+  }
+
+  // ---------- trails ----------
+  function makeTrail(color, opacity){
+    const N = 12, geo = new THREE.BufferGeometry(), pos = new Float32Array((N - 1) * 18);
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color, transparent:true, opacity, side:THREE.DoubleSide, blending:THREE.AdditiveBlending, depthWrite:false }));
+    mesh.frustumCulled = false; scene.add(mesh);
+    return { mesh, geo, pos, samples:[], N };
+  }
+  const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3();
+  function updateTrail(T, R, active, maxAge){
+    for(const s of T.samples) s.age++;
+    T.samples = T.samples.filter(s => s.age < maxAge);
+    if(active){
+      R.root.updateMatrixWorld(true);
+      R.baseMark.getWorldPosition(_v1); R.tipMark.getWorldPosition(_v2);
+      T.samples.push({ b:_v1.clone(), t:_v2.clone(), age:0 });
+      if(T.samples.length > T.N) T.samples.shift();
+    }
+    const p = T.pos; let k = 0;
+    for(let i = 1; i < T.samples.length; i++){
+      const a = T.samples[i-1], b = T.samples[i];
+      for(const q of [a.b, a.t, b.t, a.b, b.t, b.b]){ p[k++] = q.x; p[k++] = q.y; p[k++] = q.z; }
+    }
+    for(; k < p.length; k++) p[k] = 0;
+    T.geo.attributes.position.needsUpdate = true;
+    T.mesh.visible = T.samples.length > 1;
+  }
+
+  // ---------- particles, rings ----------
+  function makePoints(n, size, blending, opacity){
+    const geo = new THREE.BufferGeometry(), pos = new Float32Array(n * 3), col = new Float32Array(n * 3);
+    for(let i = 0; i < n; i++) pos[i * 3 + 1] = -100;
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size, vertexColors:true, transparent:true, opacity, blending, depthWrite:false, sizeAttenuation:true }));
+    pts.frustumCulled = false; scene.add(pts);
+    return { pts, geo, pos, col, n, items:[], next:0 };
+  }
+  const SPARKS = makePoints(700, 0.075, THREE.AdditiveBlending, 1);
+  const BLOOD = makePoints(500, 0.06, THREE.NormalBlending, 0.95);
+  const DUST = makePoints(300, 0.45, THREE.NormalBlending, 0.22);
+  const _c = new THREE.Color();
+  function emit(Pp, x, y, z, vx, vy, vz, color, life, grav, stick){
+    const i = Pp.next; Pp.next = (Pp.next + 1) % Pp.n;
+    Pp.items[i] = { x, y, z, vx, vy, vz, life, grav, stick, stuck:false };
+    _c.set(color); Pp.col[i*3] = _c.r; Pp.col[i*3+1] = _c.g; Pp.col[i*3+2] = _c.b;
+    Pp.geo.attributes.color.needsUpdate = true;
+  }
+  function stepPoints(Pp){
+    for(let i = 0; i < Pp.n; i++){
+      const it = Pp.items[i]; if(!it) continue;
+      if(it.life <= 0){ Pp.pos[i*3+1] = -100; Pp.items[i] = null; continue; }
+      it.life--;
+      if(!it.stuck){
+        it.vy -= it.grav; it.x += it.vx; it.y += it.vy; it.z += it.vz; it.vx *= 0.97; it.vz *= 0.97;
+        if(it.y <= 0.01){ if(it.stick){ it.y = 0.012; it.stuck = true; } else { it.y = 0.01; it.vy *= -0.3; } }
+      }
+      Pp.pos[i*3] = it.x; Pp.pos[i*3+1] = it.y; Pp.pos[i*3+2] = it.z;
+    }
+    Pp.geo.attributes.position.needsUpdate = true;
+  }
+  function sparkBurst(x, y, z, color, n, spd){
+    for(let i = 0; i < n; i++){ const a = rand(0, TAU), b = rand(-0.6, 1.2), s = rand(spd * 0.4, spd);
+      emit(SPARKS, x, y, z, Math.cos(a) * Math.cos(b) * s, Math.sin(b) * s, Math.sin(a) * Math.cos(b) * s, color, rand(14, 30), 0.006, false); }
+  }
+  function blood(x, y, z, dx, dz, n){
+    for(let i = 0; i < n; i++) emit(BLOOD, x, y, z, dx * rand(0.02, 0.09) + rand(-0.02, 0.02), rand(0, 0.08), dz * rand(0.02, 0.09) + rand(-0.02, 0.02), Math.random() < 0.5 ? '#8e1622' : '#5a0d14', 600, 0.006, true);
+  }
+  function dust(x, z, n){
+    for(let i = 0; i < n; i++) emit(DUST, x + rand(-0.2, 0.2), 0.05, z + rand(-0.2, 0.2), rand(-0.02, 0.02), rand(0.005, 0.015), rand(-0.02, 0.02), '#8a7f98', rand(25, 45), 0, false);
+  }
+  const rings = [];
+  for(let i = 0; i < 8; i++){
+    const m = new THREE.Mesh(new THREE.RingGeometry(0.35, 0.5, 40), new THREE.MeshBasicMaterial({ color:0xffd7a8, transparent:true, opacity:0, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
+    m.rotation.x = -Math.PI / 2; m.visible = false; scene.add(m); rings.push({ m, life:0, grow:0 });
+  }
+  let ringNext = 0;
+  function groundRing(x, z, color, size){
+    const r = rings[ringNext]; ringNext = (ringNext + 1) % rings.length;
+    r.m.position.set(x, 0.03, z); r.m.scale.setScalar(0.5); r.m.material.color.set(color); r.m.material.opacity = 0.7; r.m.visible = true; r.life = 24; r.grow = size || 0.18;
+  }
+  function stepRings(){ for(const r of rings){ if(r.life <= 0){ r.m.visible = false; continue; } r.life--; r.m.scale.multiplyScalar(1 + r.grow); r.m.material.opacity *= 0.88; } }
+
+  // ---------- armor debris ----------
+  const debris = [];
+  function breakPart(e, n){
+    for(let i = 0; i < n; i++){
+      const R = e.R; if(!R.parts.length) return;
+      const idx = Math.floor(Math.random() * R.parts.length), mesh = R.parts.splice(idx, 1)[0];
+      if(!mesh.parent) continue;
+      R.parts = R.parts.filter(p => p.parent && !isDescendant(p, mesh));
+      if(mesh === R.helmDome) enrage(e);
+      scene.attach(mesh);
+      const a = yawTo(P, e) + rand(-0.8, 0.8);
+      debris.push({ mesh, vx:Math.sin(a) * rand(0.03, 0.07), vy:rand(0.05, 0.1), vz:Math.cos(a) * rand(0.03, 0.07), sx:rand(-0.3, 0.3), sy:rand(-0.3, 0.3), sz:rand(-0.3, 0.3), rest:false });
+      sfx('crack');
+      sparkBurst(mesh.position.x, mesh.position.y, mesh.position.z, '#d8d2c8', 10, 0.08);
+      if(debris.length > 40){ const old = debris.shift(); scene.remove(old.mesh); }
+    }
+  }
+  function isDescendant(o, root){ let p = o.parent; while(p){ if(p === root) return true; p = p.parent; } return false; }
+  function toDebris(mesh, e){
+    mesh.updateMatrixWorld(true); scene.attach(mesh);
+    const a = yawTo(P, e) + rand(-0.8, 0.8);
+    debris.push({ mesh, vx:Math.sin(a) * rand(0.02, 0.06), vy:rand(0.07, 0.11), vz:Math.cos(a) * rand(0.02, 0.06), sx:rand(-0.4, 0.4), sy:rand(-0.4, 0.4), sz:rand(-0.4, 0.4), rest:false });
+    if(debris.length > 40){ const old = debris.shift(); scene.remove(old.mesh); }
+  }
+  // part breaks: helm off = enraged, weapon broken = disarmed, shield broken = no more turtling
+  function enrage(e){
+    if(e.enraged || !e.alive) return;
+    e.enraged = true; e.R.mats[4].userData.baseEm = 0xff2a10;
+    const c = chestOf(e); floatText(c.x, c.y + 1.1, c.z, 'ENRAGED', '#ff5a3a', 1.2); sfx('windup');
+    hint('enraged', 'You knocked the helm off: he fights faster and wilder now.');
+  }
+  function damageWeapon(e, n){
+    if(!e.alive || e.disarmed) return;
+    e.weaponHp -= n;
+    if(e.weaponHp > 0) return;
+    e.disarmed = true; e.chain = null; e.strike = null; if(e.state === 'attack') e.state = 'neutral';
+    toDebris(e.R.sword, e); e.trail.mesh.visible = false;
+    sfx('crack'); sfx('clang', 1.2, 0.6); impact(2);
+    const c = chestOf(e); floatText(c.x, c.y + 1.1, c.z, 'DISARMED', '#ffd166', 1.3);
+    hint('disarm', 'Your clashes and deflects broke their weapon. Now they brawl: short reach, fast fists.');
+  }
+  function damageShield(e, n){
+    if(!e.T.shield || e.shieldBroken) return;
+    e.shieldHp -= n;
+    if(e.shieldHp > 0) return;
+    e.shieldBroken = true;
+    const sh = e.R.shieldMesh; e.R.shieldMesh = null; toDebris(sh, e);
+    sfx('crack'); sfx('clang', 1.3, 0.5); impact(2);
+    const c = chestOf(e); floatText(c.x, c.y + 1.1, c.z, 'SHIELD BROKEN', '#cfd8ff', 1.3);
+  }
+  function stepDebris(){
+    for(const d of debris){
+      if(d.rest) continue;
+      d.vy -= 0.006; d.mesh.position.x += d.vx; d.mesh.position.y += d.vy; d.mesh.position.z += d.vz;
+      d.mesh.rotation.x += d.sx; d.mesh.rotation.y += d.sy; d.mesh.rotation.z += d.sz;
+      if(d.mesh.position.y <= 0.06){
+        d.mesh.position.y = 0.06; d.vy *= -0.3; d.vx *= 0.55; d.vz *= 0.55; d.sx *= 0.5; d.sy *= 0.5; d.sz *= 0.5;
+        if(Math.abs(d.vy) < 0.012){ d.rest = true; }
+      }
+    }
+  }
+
+  // ---------- floating text, log ----------
+  const floats = [];
+  function floatText(x, y, z, text, color, size){
+    const el = document.createElement('div'); el.className = 'float'; el.textContent = text; el.style.color = color;
+    el.style.fontSize = Math.round(15 * (size || 1)) + 'px';
+    document.body.appendChild(el); floats.push({ el, x, y, z, life:60 });
+  }
+  const _p = new THREE.Vector3();
+  function updateFloats(){
+    for(let i = floats.length - 1; i >= 0; i--){
+      const f = floats[i]; f.life--; f.y += 0.012;
+      if(f.life <= 0){ f.el.remove(); floats.splice(i, 1); continue; }
+      _p.set(f.x, f.y, f.z).project(camera);
+      if(_p.z > 1){ f.el.style.opacity = 0; continue; }
+      f.el.style.left = ((_p.x + 1) / 2 * innerWidth) + 'px'; f.el.style.top = ((1 - _p.y) / 2 * innerHeight) + 'px';
+      f.el.style.opacity = Math.min(1, f.life / 20);
+    }
+  }
+  const hintsSeen = {};
+  function hint(k, text){ if(hintsSeen[k]) return; hintsSeen[k] = true; log(text, 'tip', 7000); }
+  const logEl = $('log');
+  function log(text, cls, ms){
+    const d = document.createElement('div'); d.textContent = text; if(cls) d.className = cls;
+    logEl.appendChild(d);
+    setTimeout(() => { d.style.opacity = 0; setTimeout(() => d.remove(), 400); }, ms || 2800);
+    while(logEl.children.length > 6) logEl.removeChild(logEl.firstChild);
+  }
+
+  // ---------- input ----------
+  const keys = {}, buf = {};
+  const press = (k, f) => { buf[k] = f || 8; if(k === 'attack'){ pressLog.push(frameNo); if(pressLog.length > 10) pressLog.shift(); } };
+  const has = k => buf[k] > 0;
+  const take = k => { buf[k] = 0; };
+  const mouse = { l:false, r:false, dx:0, dy:0 };
+  let locked = false, started = false;
+  addEventListener('keydown', e => {
+    if(['Space','Tab','ShiftLeft','ShiftRight'].includes(e.code)) e.preventDefault();
+    const was = keys[e.code]; keys[e.code] = true; if(was) return;
+    initAudio();
+    if(e.code === 'KeyK' || (e.code === 'Escape' && paused)){ toggleLoadout(); return; }
+    if(paused) return;
+    switch(e.code){
+      case 'Space': press('jump', 6); break;
+      case 'KeyF': press('parry', 3); break;
+      case 'ShiftLeft': case 'ShiftRight': press('dodge', 6); break;
+      case 'Tab': toggleLock(); break;
+      case 'KeyQ': press('skillQ', 8); break;
+      case 'KeyE': press('skillE', 8); break;
+      case 'Digit1': case 'Digit2': case 'Digit3': case 'Digit4': case 'Digit5': case 'Digit6': spawnEnemy(SPAWN_KEYS[e.code]); break;
+      case 'KeyR': if(!P.alive || runOver) handleR(); else press('flask', 6); break;
+      case 'KeyM': muted = !muted; log(muted ? 'Sound off' : 'Sound on', 'tip'); break;
+    }
+  });
+  addEventListener('keyup', e => { keys[e.code] = false; });
+  addEventListener('blur', () => { for(const k in keys) keys[k] = false; mouse.l = mouse.r = false; });
+  canvas.addEventListener('mousedown', e => {
+    initAudio();
+    if(started && !locked){ try{ const r = canvas.requestPointerLock(); if(r && r.catch) r.catch(() => {}); }catch(err){} }
+    if(e.button === 0){ press('attack', 8); mouse.l = true; }
+    if(e.button === 2){ press('parry', 3); mouse.r = true; }
+    if(e.button === 1){ e.preventDefault(); toggleLock(); }
+  });
+  addEventListener('mouseup', e => { if(e.button === 0) mouse.l = false; if(e.button === 2) mouse.r = false; });
+  addEventListener('contextmenu', e => e.preventDefault());
+  addEventListener('mousemove', e => { if(!started) return; mouse.dx += e.movementX || 0; mouse.dy += e.movementY || 0; });
+  document.addEventListener('pointerlockchange', () => { locked = document.pointerLockElement === canvas; $('mouseHint').hidden = locked || !started; });
+  const guardHeld = () => !!(mouse.r || keys.KeyF);
+
+  // ---------- player ----------
+  const P = {
+    x:0, z:-5, y:0, vy:0, vx:0, vz:0, kx:0, kz:0, yaw:0, radius:0.35, onGround:true,
+    hp:100, maxHp:100, str:13, def:10, posture:0, postureT:0, alive:true,
+    combo:0, comboT:0, atkT:0, atkTotal:1, atk:null, atkHitFrame:0, atkHit:true, lock:0,
+    parryT:0, parryCd:0, blocking:false, dodgeT:0, dodgeCd:0, ddx:0, ddz:0, invuln:false, stunT:0,
+    flash:0, recoil:0, armRecoil:0, recoilSide:1, hitTilt:0, pose:newPose(), phase:0, walkAmt:0, lastStep:0, roll:0, seed:1,
+    moveId:'a1', lastMove:null, sinceAtk:99, recent:[], linkFrame:-99, atkStartFrame:-99, perfect:false, staleMult:1, whiffT:0,
+    skill:null, skillCd:{ Q:0, E:0 }, loadout:{ Q:'rush', E:'fangs' }, unlocked:new Set(['rush','fangs']),
+    mastery:{}, deflects:0, learnProg:{}, riposteT:0
+  };
+  // sword skills: glowing pre-motion, a scripted motion you can't cancel, then a post-motion freeze where you're open.
+  // press the other skill in the last frames of the motion to chain (skill connect) and skip the freeze.
+  const SKILLS = {
+    rush:   { name:'Sonic Rush', color:0x7dffb0, hex:'#7dffb0', cd:240, pre:9, motion:12, post:30, connect:8, dash:0.21, contact:true, dmg:22, posture:32, crush:true,
+              prePose:{ lean:-0.12, crouch:0.52, armUp:0.15, armYaw:1.35, ext:0.3, tilt:0.1, stride:-0.35 }, from:{ armUp:0.15, armYaw:1.35, tilt:0.1 }, to:{ armUp:0.1, armYaw:-1.35, tilt:0.05 }, lean:0.62, crouch:0.42,
+              desc:'Dash through them with one guard-breaking cut.', how:'starter' },
+    fangs:  { name:'Four Fangs', color:0x7db8ff, hex:'#7db8ff', cd:360, pre:10, motion:26, post:20, connect:8, hitEvery:6, range:2.3, dmg:7, posture:9, step:0.032,
+              prePose:{ lean:-0.08, crouch:0.4, armUp:0.6, armYaw:0.9, ext:0.35, tilt:0.6, stride:-0.2 }, lean:0.4, crouch:0.3,
+              desc:'Four fast alternating cuts.', how:'starter' },
+    spin:   { name:'Whirl Arc', color:0xc78dff, hex:'#c78dff', cd:300, pre:12, motion:20, post:34, connect:8, hitEvery:10, range:2.4, cone:Math.PI, dmg:12, posture:14, step:0, spin:true,
+              prePose:{ lean:-0.1, crouch:0.55, armUp:0.1, armYaw:1.5, ext:0.6, tilt:0.05, stride:0.2 }, lean:0.3, crouch:0.45,
+              desc:'Spin with the blade out, hitting everything around you twice.', how:'Four Fangs mastery 3' },
+    pierce: { name:'Piercing Star', color:0xfff07d, hex:'#fff07d', cd:300, pre:15, motion:8, post:38, connect:7, dash:0.32, contact:true, dmg:30, posture:30, thrust:true,
+              prePose:{ lean:-0.25, crouch:0.5, armUp:0.12, armYaw:0.3, ext:0, tilt:0, stride:-0.5 }, from:{ armUp:0.12, armYaw:0, tilt:0 }, to:{ armUp:0.12, armYaw:0, tilt:0 }, lean:0.7, crouch:0.45,
+              desc:'A long lunging thrust. Huge damage, long freeze.', how:'Sonic Rush mastery 3' },
+    rising: { name:'Sky Splitter', color:0x7dffff, hex:'#7dffff', cd:280, pre:10, motion:10, post:30, connect:8, hitAt:4, range:2.2, dmg:16, posture:24, rise:true,
+              prePose:{ lean:0.1, crouch:0.6, armUp:-0.8, armYaw:0.5, ext:0.4, tilt:-0.1, stride:0.3 }, from:{ armUp:-0.85, armYaw:0.5, tilt:-0.1 }, to:{ armUp:2.0, armYaw:-0.2, tilt:0.6 }, lean:0.15, crouch:0.3,
+              desc:'Rising cut that throws them off balance. Your falling cut punishes it.', how:'5 kills' },
+    riposte:{ name:'Riposte', color:0xffffff, hex:'#ffffff', cd:120, pre:3, motion:8, post:18, connect:8, counterOnly:true, hitAt:3, range:2.4, dmg:26, posture:40, crush:true,
+              prePose:{ lean:0.1, crouch:0.4, armUp:1.2, armYaw:1.2, ext:0.5, tilt:0.3, stride:0.3 }, from:{ armUp:1.2, armYaw:1.2, tilt:0.3 }, to:{ armUp:-0.2, armYaw:-1.2, tilt:0.1 }, lean:0.55, crouch:0.4,
+              desc:'Only right after a perfect deflect or a won clash: an instant, brutal counter.', how:'12 deflects' },
+    rend:   { name:'Crimson Rend', color:0xff4a3a, hex:'#ff4a3a', cd:360, pre:12, motion:24, post:36, connect:8, hitEvery:8, range:2.3, dmg:11, posture:14, step:0.03, lastHeavy:true,
+              prePose:{ lean:-0.1, crouch:0.45, armUp:0.7, armYaw:1.1, ext:0.4, tilt:0.5, stride:-0.2 }, lean:0.45, crouch:0.35,
+              desc:'Learned from the Knight: three cuts, the last one heavy.', how:'deflect every hit of the Knight\'s red skill, twice', learn:'knight' },
+    flurry: { name:'Gilded Flurry', color:0xffc84a, hex:'#ffc84a', cd:360, pre:10, motion:25, post:34, connect:8, hitEvery:5, range:2.0, dmg:6, posture:7, step:0.03,
+              prePose:{ lean:-0.05, crouch:0.38, armUp:0.5, armYaw:0.8, ext:0.35, tilt:0.5, stride:-0.15 }, lean:0.35, crouch:0.28,
+              desc:'Learned from the Duelist: five lightning cuts.', how:'deflect every hit of the Duelist\'s gold skill, twice', learn:'duelist' }
+  };
+  // ---------- use-based stats: you get better at what you do ----------
+  P.stats = { str:12, spd:10, vit:10, def:10 }; P.xp = { str:0, spd:0, vit:0, def:0 };
+  P.flasks = 3; P.drinkT = 0; P.runAcc = 0;
+  const BASE = { str:12, spd:10, vit:10, def:10 };
+  Object.defineProperty(P, 'str', { get(){ return P.stats.str + 1; } });
+  Object.defineProperty(P, 'def', { get(){ return P.stats.def; } });
+  Object.defineProperty(P, 'maxHp', { get(){ return 60 + P.stats.vit * 4; } });
+  const STAT_INFO = {
+    str:{ label:'STR', color:'#ff8a5c' }, spd:{ label:'SPD', color:'#7fd8ff' },
+    vit:{ label:'VIT', color:'#7fe38a' }, def:{ label:'DEF', color:'#c9b2ff' }
+  };
+  const statNeed = k => 8 + (P.stats[k] - BASE[k]) * 2.2;
+  const pPower = () => (P.stats.str + P.stats.spd + P.stats.vit + P.stats.def) / 4;
+  const spdMult = () => 1 + (P.stats.spd - 10) * 0.025;
+  const stunMult = () => clamp(1 - (P.stats.vit - 10) * 0.02, 0.6, 1);
+  function gainStat(k, amt, e){
+    if(!P.alive) return;
+    const m = e ? clamp((e.T.str + e.T.def + 20) / 4 * (e.T.boss ? 1.3 : e.T.elite ? 1.15 : 1) / pPower(), 0.15, 2.5) : 1;
+    P.xp[k] += amt * m;
+    while(P.xp[k] >= statNeed(k)){
+      P.xp[k] -= statNeed(k); P.stats[k]++;
+      if(k === 'vit') P.hp += 4;
+      floatText(P.x, 2.5, P.z, '+1 ' + STAT_INFO[k].label, STAT_INFO[k].color, 1.2);
+      sfx('learn'); popStat(k);
+    }
+  }
+  function passiveStat(k, amt, e){ const room = Math.max(0, 16 - (e.passive || 0)); const a = Math.min(room, amt); e.passive = (e.passive || 0) + a; if(a > 0) gainStat(k, a, e); }
+  const SKILL_ORDER = ['rush','fangs','spin','pierce','rising','riposte','rend','flurry'];
+  const MASTERY_NEED = [0, 3, 6, 10, 15];
+  const mast = id => P.mastery[id] || (P.mastery[id] = { lv:1, xp:0 });
+  function skillDef(id){
+    const b = SKILLS[id], lv = mast(id).lv - 1, w = woundP();
+    return Object.assign({}, b, { id,
+      pre:Math.max(2, Math.round(b.pre * (1 - 0.06 * lv) * (1 + 0.3 * w))),
+      post:Math.max(8, Math.round((b.post - 3 * lv) * (1 + 0.3 * w))),
+      dmg:b.dmg * (1 + 0.06 * lv), connect:b.connect + lv });
+  }
+  function gainMastery(id, amt){
+    const m = mast(id); if(m.lv >= 5) return;
+    m.xp += amt;
+    while(m.lv < 5 && m.xp >= MASTERY_NEED[m.lv]){ m.xp -= MASTERY_NEED[m.lv]; m.lv++; floatText(P.x, 2.6, P.z, SKILLS[id].name + ' Lv' + m.lv, SKILLS[id].hex, 1); sfx('learn'); }
+    checkUnlocks();
+  }
+  function unlock(id){
+    if(P.unlocked.has(id)) return;
+    P.unlocked.add(id); sfx('learn');
+    showBanner('NEW SKILL: ' + SKILLS[id].name.toUpperCase(), 'press K to equip');
+  }
+  function checkUnlocks(){
+    if(mast('fangs').lv >= 3) unlock('spin');
+    if(mast('rush').lv >= 3) unlock('pierce');
+    if(kills >= 5) unlock('rising');
+    if(P.deflects >= 12) unlock('riposte');
+  }
+  let bannerT = 0;
+  function showBanner(main, sub){ $('bannerMain').textContent = main; $('bannerSub').textContent = sub; $('banner').style.opacity = 1; bannerT = 200; }
+  // wounds: below 60% HP everything gets heavier
+  const woundP = () => P.alive ? clamp((0.6 - P.hp / P.maxHp) / 0.6, 0, 1) : 0;
+  const eWound = e => clamp((0.4 - e.hp / e.maxHp) / 0.4, 0, 1);
+  const PR = makeRig({ scale:1, body:0xc9d2e3, dark:0x727c90, trim:0x5fb6cc, blade:0xeef6ff, eye:0x5fe0ff, wlen:0.95, cape:0xa8262f });
+  const PTRAIL = makeTrail(0xbfe6ff, 0.42);
+  // the rhythm of your clicks picks the move:
+  // L-L-L = a1 a2 a3 · L-L-pause-L = a1 a2 crush · L-pause-L-L = a1 rise drop
+  const MOVES = {
+    a1:    { startup:7, total:18, lock:11, range:2.1, dmg:10, post:6, from:{ armUp:0.45, armYaw:1.4, tilt:0.2 }, to:{ armUp:0.1, armYaw:-1.25, tilt:0.1 }, lean:0.32, crouch:0.24, side:1 },
+    a2:    { startup:7, total:18, lock:11, range:2.1, dmg:12, post:7, from:{ armUp:0.2, armYaw:-1.35, tilt:0.15 }, to:{ armUp:0.4, armYaw:1.3, tilt:0.2 }, lean:0.3, crouch:0.24, side:-1 },
+    a3:    { startup:9, total:25, lock:20, range:2.4, dmg:18, post:11, from:{ armUp:1.95, armYaw:0.05, tilt:0.5 }, to:{ armUp:-0.6, armYaw:0, tilt:0.15 }, lean:0.55, crouch:0.4, big:true, side:1, end:true },
+    crush: { startup:13, total:30, lock:24, range:2.45, dmg:20, post:30, from:{ armUp:2.25, armYaw:-0.3, tilt:0.7 }, to:{ armUp:-0.7, armYaw:0.1, tilt:0.1 }, lean:0.65, crouch:0.5, big:true, crush:true, side:1, end:true, name:'GUARD CRUSH' },
+    rise:  { startup:8, total:22, lock:15, range:2.15, dmg:11, post:12, from:{ armUp:-0.85, armYaw:0.6, tilt:-0.1 }, to:{ armUp:1.9, armYaw:-0.2, tilt:0.6 }, lean:0.1, crouch:0.46, rise:true, side:1, name:'RISING CUT' },
+    drop:  { startup:5, total:20, lock:16, range:2.3, dmg:16, post:16, from:{ armUp:2.0, armYaw:0, tilt:0.6 }, to:{ armUp:-0.6, armYaw:0, tilt:0.1 }, lean:0.6, crouch:0.42, big:true, drop:true, side:1, end:true, name:'FALLING CUT' }
+  };
+  const pressLog = [];
+  const takenMult = () => 20 / (10 + P.def);
+
+  // ---------- enemies ----------
+  const M = o => { const m = Object.assign({ active:5, rec:8, step:0.05, hold:[0,0], type:'slash', cone:1.0 }, o); m.tell = m.wind + Math.round(rand(m.hold[0], m.hold[1])); return m; };
+  const TYPES = {
+    knight: {
+      name:'Knight', radius:0.48, scale:1.12, bulk:1.15, hp:170, str:12, def:12, spd:0.034, turn:0.06, tellTurn:0.022, pref:1.9, postureMax:100,
+      body:0x8a4a40, dark:0x4f2a25, trim:0xe0a947, blade:0xd9d2c4, eye:0xffb347, wlen:1.05, wwidth:1.4, helm:'knight', cape:0x3b1612, skillColor:0xff4a3a,
+      ready:0.5, parry:0.18, block:0.42, back:0.05, reactCd:48, cool:30, poise:true, exchange:0.55,
+      tip:'Knight: armored. Swing into his slashes to clash. Big overhead after a pause. Low crouch with the blade dragged back is a sweep: jump. Blade pulled back at the hip is a thrust: sidestep or parry.',
+      choose(e, d){
+        if(d > 3.2) return d < 4.6 && Math.random() < 0.3 ? [M({ wind:16, hold:[2,18], type:'thrust', active:9, dash:0.16, rec:30, range:1.1, cone:0.45, dmg:16 })] : null;
+        const r = Math.random();
+        if(r < 0.24) return [M({ wind:26, hold:[3,34], heavy:true, active:8, rec:34, range:2.5, cone:0.8, dmg:20 })];
+        if(r < 0.36) return [M({ wind:16, hold:[2,12], type:'sweep', active:7, rec:28, range:2.5, cone:1.5, dmg:14 })];
+        if(r < 0.46) return [M({ wind:16, hold:[2,18], type:'thrust', active:9, dash:0.13, rec:30, range:1.1, cone:0.45, dmg:16 })];
+        // sword skill: blade glows red, three fast cuts, the last one heavy. then a long freeze you can punish.
+        if(r < 0.56) return [M({ wind:12, hold:[3,10], skill:true, range:2.3, dmg:12, rec:2, side:1 }), M({ wind:4, hold:[0,1], skill:true, range:2.3, dmg:12, rec:2, side:-1 }), M({ wind:5, hold:[0,2], skill:true, heavy:true, range:2.5, dmg:16, rec:46 })];
+        const n = Math.random() < 0.5 ? 2 : 3, c = [];
+        for(let i = 0; i < n; i++) c.push(M({ wind:10, hold:[1,8], range:2.15, dmg:9, rec:i === n-1 ? 22 : 5, side:i % 2 ? -1 : 1 }));
+        return c;
+      },
+      reply(){ return [M({ wind:7, hold:[0,4], range:2.15, dmg:9, rec:16, side:Math.random() < 0.5 ? 1 : -1 })]; },
+      counter(){ return [M({ wind:10, hold:[2,6], range:2.15, dmg:9, rec:20 })]; }
+    },
+    duelist: {
+      name:'Duelist', radius:0.36, scale:0.95, bulk:0.85, hp:100, str:8, def:7, spd:0.058, turn:0.1, tellTurn:0.04, pref:1.6, postureMax:100,
+      body:0xb08a3c, dark:0x6b5222, trim:0xf3e1a0, blade:0xf6efdc, eye:0xffe6a0, wlen:0.95, wwidth:0.6, twoHand:false, helm:'hood', skillColor:0xffc84a,
+      ready:0.9, parry:0.34, block:0.08, back:0.3, reactCd:34, cool:22, poise:false, exchange:0.7,
+      tip:'Duelist: fast, circles you, loves exchanges. Low lunge = thrust that goes through your block.',
+      choose(e, d){
+        if(d > 2.6) return d < 4.2 && Math.random() < 0.35 ? [M({ wind:14, hold:[2,16], type:'thrust', active:10, dash:0.17, rec:28, range:0.9, cone:0.5, dmg:13 })] : null;
+        const rr = Math.random();
+        if(rr < 0.18) return [M({ wind:14, hold:[2,16], type:'thrust', active:10, dash:0.14, rec:28, range:0.9, cone:0.5, dmg:13 })];
+        if(rr < 0.3){
+          const c = [M({ wind:12, hold:[2,8], skill:true, active:4, range:1.9, dmg:7, rec:1, side:1 })];
+          for(let i = 1; i < 5; i++) c.push(M({ wind:3, hold:[0,1], skill:true, active:4, range:1.9, dmg:7, rec:i === 4 ? 40 : 1, side:i % 2 ? -1 : 1 }));
+          return c;
+        }
+        const n = Math.random() < 0.4 ? 4 : 3, c = [];
+        for(let i = 0; i < n; i++){ const feint = i > 0 && Math.random() < 0.25;
+          c.push(M({ wind:6, hold:feint ? [12,18] : [0,6], active:4, range:1.85, dmg:7, rec:i === n-1 ? 20 : 2, side:i % 2 ? -1 : 1 })); }
+        return c;
+      },
+      reply(){ return [M({ wind:5, hold:[0,3], active:4, range:1.85, dmg:7, rec:12, side:Math.random() < 0.5 ? 1 : -1 })]; },
+      counter(){ return [M({ wind:7, hold:[1,4], active:4, range:1.85, dmg:7, rec:3 }), M({ wind:6, hold:[0,3], active:4, range:1.85, dmg:7, rec:18, side:-1 })]; }
+    },
+    shield: {
+      name:'Bulwark', radius:0.5, scale:1.1, bulk:1.2, hp:190, str:13, def:16, spd:0.03, turn:0.05, tellTurn:0.02, pref:1.8, postureMax:120,
+      body:0x55606e, dark:0x2f353d, trim:0xb8c4d4, blade:0xd0d4da, eye:0x9fd8ff, wlen:0.85, wwidth:1.2, helm:'knight', cape:0x1d2430, skillColor:0x7fc8ff, shield:true, weaponHp:5,
+      ready:0.1, parry:0.05, block:0.6, back:0.02, reactCd:40, cool:34, poise:true, exchange:0.3,
+      tip:'Bulwark: the shield stops everything from the front. Go around him, guard crush it (L-L-pause-L), or break the shield with heavy blows. Shield bash breaks your guard.',
+      choose(e, d){
+        if(d > 2.6) return null;
+        const r = Math.random();
+        if(r < 0.35) return [M({ wind:9, hold:[0,6], range:1.8, dmg:8, rec:18, bash:true, cone:0.9 })];
+        if(r < 0.6) return [M({ wind:24, hold:[3,26], heavy:true, active:8, rec:32, range:2.3, cone:0.8, dmg:20 })];
+        return [M({ wind:11, hold:[1,8], range:2.0, dmg:10, rec:6, side:1 }), M({ wind:9, hold:[0,6], range:1.8, dmg:8, rec:22, bash:true })];
+      },
+      reply(){ return [M({ wind:7, hold:[0,3], range:1.8, dmg:8, rec:16, bash:true })]; },
+      counter(){ return [M({ wind:8, hold:[0,3], range:1.8, dmg:8, rec:18, bash:true })]; }
+    },
+    spear: {
+      name:'Pikeman', radius:0.4, scale:1.0, bulk:0.95, hp:120, str:11, def:9, spd:0.042, turn:0.07, tellTurn:0.03, pref:2.6, postureMax:100,
+      body:0x4a6a3a, dark:0x2a3a22, trim:0xc8b878, blade:0xd8dcd0, eye:0xd8ff9a, wlen:2.0, wwidth:0.5, helm:'hood', skillColor:0xb8ff6a, weaponHp:3,
+      ready:0.25, parry:0.15, block:0.2, back:0.45, reactCd:40, cool:26, poise:false, exchange:0.3,
+      tip:'Pikeman: keeps you at spear length. His thrusts go through your block: sidestep or parry them. Low crouch = sweep, jump it. Get inside his reach.',
+      choose(e, d){
+        if(d < 1.4) return Math.random() < 0.5 ? [M({ wind:8, hold:[0,4], range:1.6, dmg:9, rec:20, side:1, step:-0.06 })] : null;
+        if(d > 3.6) return null;
+        const r = Math.random();
+        if(r < 0.45) return [M({ wind:14, hold:[2,16], type:'thrust', active:8, range:3.0, cone:0.32, dmg:15, rec:24, step:0.03 })];
+        if(r < 0.65) return [M({ wind:16, hold:[2,12], type:'sweep', active:8, range:2.9, cone:1.4, dmg:13, rec:28 })];
+        return [M({ wind:12, hold:[1,8], type:'thrust', active:6, range:3.0, cone:0.32, dmg:10, rec:4 }), M({ wind:8, hold:[0,5], type:'thrust', active:6, range:3.0, cone:0.32, dmg:10, rec:26 })];
+      },
+      reply(){ return [M({ wind:8, hold:[0,3], type:'thrust', active:6, range:3.0, cone:0.32, dmg:10, rec:18 })]; },
+      counter(){ return [M({ wind:9, hold:[0,3], type:'thrust', active:6, range:3.0, cone:0.32, dmg:10, rec:20 })]; }
+    },
+    assassin: {
+      name:'Shade', radius:0.34, scale:0.92, bulk:0.8, hp:85, str:9, def:6, spd:0.072, turn:0.14, tellTurn:0.06, pref:1.5, postureMax:80,
+      body:0x2a2433, dark:0x15111c, trim:0x8a5ad0, blade:0xc8c0e0, eye:0xc77dff, wlen:0.55, wwidth:0.7, twoHand:false, helm:'hood', skillColor:0xb06aff, weaponHp:3, assassin:true,
+      ready:0.2, parry:0.2, block:0.02, back:0.5, reactCd:30, cool:30, poise:false, exchange:0.5,
+      tip:'Shade: circles behind you and vanishes. Listen for the footsteps, keep turning to face him, punish when he commits.',
+      choose(e, d){
+        if(d > 2.2) return null;
+        const n = 2 + (Math.random() < 0.5 ? 1 : 0), c = [];
+        for(let i = 0; i < n; i++) c.push(M({ wind:i === 0 ? 8 : 5, hold:[0,4], range:1.6, dmg:9, rec:i === n-1 ? 24 : 2, side:i % 2 ? -1 : 1 }));
+        return c;
+      },
+      reply(){ return [M({ wind:5, hold:[0,2], range:1.6, dmg:9, rec:16 })]; },
+      counter(){ return [M({ wind:6, hold:[0,2], range:1.6, dmg:9, rec:18 })]; }
+    },
+    brute: {
+      name:'Brute', radius:0.62, scale:1.35, bulk:1.45, hp:260, str:16, def:10, spd:0.026, turn:0.04, tellTurn:0.018, pref:2.0, postureMax:150,
+      body:0x6a4a3a, dark:0x3a2820, trim:0x8a8a8a, blade:0x7a7068, eye:0xff6a3a, wlen:1.0, wwidth:3.2, twoHand:false, helm:'none', skillColor:0xff8a3a, weaponHp:6, armored:true,
+      ready:0, parry:0, block:0.15, back:0, reactCd:60, cool:40, poise:true, exchange:0.15,
+      tip:'Brute: light hits don\'t even make him flinch. When his free hand reaches for you, roll: grabs ignore block and parry. Jump his ground slam.',
+      choose(e, d){
+        if(d > 2.8) return null;
+        const r = Math.random();
+        if(r < 0.3) return [M({ wind:20, hold:[0,12], type:'grab', active:8, range:1.7, cone:0.7, dmg:28, rec:34, step:0.06 })];
+        if(r < 0.55) return [M({ wind:22, hold:[2,16], type:'sweep', active:6, range:2.8, cone:Math.PI, dmg:16, rec:34, slam:true })];
+        return [M({ wind:20, hold:[3,24], heavy:true, active:8, rec:30, range:2.6, cone:0.9, dmg:24 })];
+      },
+      reply(){ return [M({ wind:14, hold:[0,6], heavy:true, active:8, rec:30, range:2.6, cone:0.9, dmg:22 })]; },
+      counter(){ return [M({ wind:14, hold:[0,6], heavy:true, active:8, rec:30, range:2.6, cone:0.9, dmg:22 })]; }
+    }
+  };
+  TYPES.knight.weaponHp = 4; TYPES.duelist.weaponHp = 3;
+  Object.assign(TYPES, {
+    captain: {
+      name:'Gate Captain', radius:0.52, scale:1.25, bulk:1.2, hp:360, str:14, def:14, spd:0.036, turn:0.07, tellTurn:0.026, pref:2.0, postureMax:150, elite:true,
+      body:0x5d6472, dark:0x33373f, trim:0xc9b37a, blade:0xcfcac0, eye:0xff5a3a, wlen:1.15, wwidth:1.6, helm:'knight', cape:0x2a1418, skillColor:0xff7a3a, weaponHp:7,
+      ready:0.5, parry:0.25, block:0.36, back:0.04, reactCd:44, cool:24, poise:true, exchange:0.55,
+      tip:'Gate Captain: knight moves plus a burning four-hit skill, sweeps and thrusts. He reads patterns fast.',
+      choose(e, d){
+        const thrust = () => M({ wind:16, hold:[2,18], type:'thrust', active:9, dash:0.16, rec:30, range:1.2, cone:0.45, dmg:18 });
+        if(d > 3.4) return d < 5 && Math.random() < 0.35 ? [thrust()] : null;
+        const r = Math.random();
+        if(r < 0.2) return [M({ wind:26, hold:[3,34], heavy:true, active:8, rec:32, range:2.6, cone:0.8, dmg:24 })];
+        if(r < 0.34) return [M({ wind:16, hold:[2,12], type:'sweep', active:7, rec:28, range:2.7, cone:1.5, dmg:16 })];
+        if(r < 0.46) return [thrust()];
+        if(r < 0.6) return [M({ wind:12, hold:[3,10], skill:true, range:2.4, dmg:12, rec:2, side:1 }), M({ wind:4, hold:[0,1], skill:true, range:2.4, dmg:12, rec:2, side:-1 }), M({ wind:4, hold:[0,1], skill:true, range:2.4, dmg:12, rec:2, side:1 }), M({ wind:5, hold:[0,2], skill:true, heavy:true, range:2.6, dmg:18, rec:46 })];
+        const n = 2 + (Math.random() < 0.5 ? 1 : 0), c = [];
+        for(let i = 0; i < n; i++) c.push(M({ wind:10, hold:[1,10], range:2.3, dmg:11, rec:i === n-1 ? 20 : 4, side:i % 2 ? -1 : 1 }));
+        return c;
+      },
+      reply(){ return [M({ wind:7, hold:[0,4], range:2.3, dmg:11, rec:16, side:Math.random() < 0.5 ? 1 : -1 })]; },
+      counter(){ return [M({ wind:9, hold:[1,5], range:2.3, dmg:11, rec:20 })]; }
+    },
+    warden: {
+      name:'The Warden', radius:0.72, scale:1.6, bulk:1.5, hp:950, str:17, def:15, spd:0.032, turn:0.06, tellTurn:0.024, pref:2.4, postureMax:240, boss:true,
+      body:0x3d2f3a, dark:0x211820, trim:0xb0302f, blade:0xbdb6ac, eye:0xff3b2f, wlen:1.45, wwidth:2.2, twoHand:false, helm:'knight', cape:0x3a0e0e, skillColor:0xff2a2a, weaponHp:12, armored:true,
+      ready:0.35, parry:0.2, block:0.3, back:0.02, reactCd:40, cool:18, poise:true, exchange:0.5,
+      tip:'The Warden. Low crouch: jump the sweep. Blade at the hip: sidestep or parry the thrust. Free hand reaching: roll. Phase two, he leaps: jump the shockwave.',
+      choose(e, d){
+        const p2 = e.phase2, r = Math.random();
+        const L = (h2, last, side) => M({ wind:p2 ? 9 : 11, hold:[1,h2], range:2.6, dmg:13, rec:last ? (p2 ? 16 : 22) : 4, side });
+        const heavy = () => M({ wind:28, hold:p2 ? [2,40] : [4,34], heavy:true, active:8, rec:p2 ? 26 : 34, range:2.9, cone:0.85, dmg:28 });
+        const sweep = () => M({ wind:18, hold:[2,14], type:'sweep', active:8, rec:26, range:3.0, cone:1.5, dmg:18 });
+        const thrust = () => M({ wind:16, hold:[2,20], type:'thrust', active:9, dash:0.17, rec:28, range:1.4, cone:0.45, dmg:22 });
+        const grab = () => M({ wind:20, hold:[0,10], type:'grab', active:8, range:2.0, cone:0.7, dmg:30, rec:34, step:0.07 });
+        const leap = () => M({ wind:18, hold:[2,10], leap:true, type:'sweep', active:80, rec:30, range:3.4, cone:Math.PI, dmg:24 });
+        const skill = () => [M({ wind:12, hold:[3,10], skill:true, range:2.7, dmg:14, rec:2, side:1 }), M({ wind:4, hold:[0,1], skill:true, range:2.7, dmg:14, rec:2, side:-1 }), M({ wind:4, hold:[0,1], skill:true, range:2.7, dmg:14, rec:2, side:1 }), M({ wind:5, hold:[0,2], skill:true, heavy:true, range:2.9, dmg:20, rec:44 })];
+        if(d > 3.8){ if(p2 && r < 0.45) return [leap()]; if(d < 6.5 && r < 0.7) return [thrust()]; return null; }
+        if(r < 0.2){ const n = p2 ? 4 : 3, c = []; for(let i = 0; i < n; i++) c.push(L(i === n-2 ? 26 : 8, i === n-1, i % 2 ? -1 : 1)); return c; }
+        if(r < 0.34) return p2 ? [heavy(), grab()] : [heavy()];
+        if(r < 0.46) return p2 ? [sweep(), thrust()] : [sweep()];
+        if(r < 0.56) return [thrust()];
+        if(r < 0.68) return [grab()];
+        if(r < 0.8) return skill();
+        if(r < 0.9) return [L(8, false, 1), L(8, false, -1), sweep()];
+        return p2 ? [leap()] : [L(6, false, 1), heavy()];
+      },
+      reply(){ return [M({ wind:9, hold:[0,4], range:2.6, dmg:13, rec:18 })]; },
+      counter(){ return [M({ wind:10, hold:[1,5], range:2.6, dmg:13, rec:20 })]; }
+    }
+  });
+  // disarmed: weapon broken, they brawl
+  const FISTS = {
+    choose(e, d){
+      if(d > 1.8) return d < 3.5 && Math.random() < 0.3 ? [M({ wind:12, hold:[0,8], type:'thrust', active:8, dash:0.17, range:0.9, cone:0.5, dmg:10, rec:26 })] : null;
+      const n = 2 + (Math.random() < 0.5 ? 1 : 0), c = [];
+      for(let i = 0; i < n; i++) c.push(M({ wind:i ? 5 : 8, hold:[0,4], range:1.4, dmg:7, rec:i === n-1 ? 20 : 3, side:i % 2 ? -1 : 1 }));
+      return c;
+    },
+    reply(){ return [M({ wind:5, hold:[0,2], range:1.4, dmg:7, rec:14 })]; },
+    counter(){ return [M({ wind:6, hold:[0,2], range:1.4, dmg:7, rec:16 })]; }
+  };
+  const brain = e => e.disarmed ? FISTS : e.T;
+  const SPAWN_KEYS = { Digit1:'knight', Digit2:'duelist', Digit3:'shield', Digit4:'spear', Digit5:'assassin', Digit6:'brute' };
+  let enemies = [], kills = 0, spawnTimer = 0, nextType = 'knight';
+  const seen = {};
+  function spawnEnemy(type){
+    if(!started) return;
+    const aliveN = enemies.filter(e => e.alive).length;
+    if(aliveN >= 3){ log('Max 3 at once', 'tip'); return; }
+    const T = TYPES[type];
+    const a = Math.atan2(P.x, P.z) + Math.PI + rand(-0.8, 0.8);
+    const e = {
+      type, T, name:T.name, x:Math.sin(a) * 8, z:Math.cos(a) * 8, y:0, vy:0, vx:0, vz:0, kx:0, kz:0, yaw:0, radius:T.radius, onGround:true,
+      hp:T.hp, maxHp:T.hp, str:T.str, def:T.def, posture:0, postureT:0, postureMax:T.postureMax,
+      state:'neutral', t:0, tellTotal:1, cool:60, reactCd:0, read:0, readT:0, readyCd:60, softStun:false, slowNext:0, exReply:false,
+      chain:null, ci:0, phase:'', strike:null, alive:true, dead:0, flash:0, recoil:0, armRecoil:0, recoilSide:1, hitTilt:0, seed:rand(0, 10), age:0, blockHits:0,
+      pose:newPose(), walk:0, walkAmt:0, fall:0, justBroke:false,
+      weaponHp:T.weaponHp || 4, shieldHp:T.shield ? 7 : 0, disarmed:false, enraged:false, blinkCd:240,
+      flank:[Math.PI * 0.55, -Math.PI * 0.55, Math.PI][aliveN % 3] + rand(-0.3, 0.3)
+    };
+    e.yaw = yawTo(e, P);
+    e.R = makeRig({ scale:T.scale, bulk:T.bulk, body:T.body, dark:T.dark, trim:T.trim, blade:T.blade, eye:T.eye, wlen:T.wlen, wwidth:T.wwidth, twoHand:T.twoHand, helm:T.helm, cape:T.cape, shield:T.shield });
+    e.trail = makeTrail(T.trim, 0.3);
+    enemies.push(e);
+    if(!seen[type]){ seen[type] = true; log(T.tip, 'tip', 8000); }
+    if(!lockT) lockT = e;
+    return e;
+  }
+  // first a duel against each type, then groups that grow
+  const WAVE_ORDER = ['knight','duelist','shield','spear','assassin','brute'];
+  let waveN = 0;
+  function spawnWave(){
+    let list;
+    if(waveN < WAVE_ORDER.length) list = [WAVE_ORDER[waveN]];
+    else {
+      const n = Math.min(3, 2 + Math.floor((waveN - WAVE_ORDER.length) / 3));
+      list = [];
+      for(let i = 0; i < n; i++){
+        let t; do { t = WAVE_ORDER[Math.floor(Math.random() * WAVE_ORDER.length)]; } while(t === 'brute' && list.includes('brute'));
+        list.push(t);
+      }
+    }
+    waveN++;
+    for(const t of list) spawnEnemy(t);
+    if(list.length > 1) log('A group closes in. They take turns, then pile on when you slip.', 'lose', 4000);
+  }
+  function removeEnemy(e){
+    scene.remove(e.R.root); scene.remove(e.trail.mesh);
+    e.R.root.traverse(o => { if(o.geometry) o.geometry.dispose(); });
+    e.trail.geo.dispose();
+  }
+
+  // ---------- lock-on ----------
+  let lockT = null;
+  function toggleLock(){
+    if(lockT){ lockT = null; return; }
+    let best = null, bs = 1e9;
+    for(const e of enemies){ if(!e.alive) continue; const d = dist(P, e); if(d > 16) continue;
+      const s = Math.abs(angDiff(cam.yaw, yawTo(P, e))) * 4 + d * 0.2; if(s < bs){ bs = s; best = e; } }
+    lockT = best;
+  }
+
+  // ---------- fx state ----------
+  let hitstop = 0, shake = 0, fovPunch = 0, flashA = 0, impactT = 0, camSide = 0;
+  let slowStart = 0, slowDur = 0, slowMin = 0.25;
+  const camKick = { x:0, y:0, z:0 };
+  const flashEl = $('flash');
+  function screenFlash(a, c){ if(a > flashA){ flashA = a; flashEl.style.background = c; } }
+  // slow-mo that eases back in instead of popping
+  function slowmo(ms, min){ slowStart = performance.now(); slowDur = ms; slowMin = min == null ? 0.22 : min; }
+  function timeScale(now){ if(now > slowStart + slowDur) return 1; const t = (now - slowStart) / slowDur; return slowMin + (1 - slowMin) * easeIn(t); }
+  const zoomPunch = v => { fovPunch = Math.max(fovPunch, v); };
+  function kickCam(from, to, amt){ const a = yawTo(from, to); camKick.x += Math.sin(a) * amt; camKick.z += Math.cos(a) * amt; camKick.y -= amt * 0.4; }
+  const impact = n => { impactT = Math.max(impactT, n); };
+  const chestOf = ent => ({ x:ent.x, y:ent.y + 1.15 * (ent.T ? ent.T.scale : 1), z:ent.z });
+  // where the two blades actually meet
+  function bladeContact(e){
+    PR.root.updateMatrixWorld(true); e.R.root.updateMatrixWorld(true);
+    PR.midMark.getWorldPosition(_v1); e.R.midMark.getWorldPosition(_v2);
+    _v3.copy(_v1).add(_v2).multiplyScalar(0.5);
+    if(_v3.y < 0.5 || _v3.y > 2.4 || dist(P, { x:_v3.x, z:_v3.z }) > 2.5){ const c = contact(e); return c; }
+    return { x:_v3.x, y:_v3.y, z:_v3.z };
+  }
+  function contact(e){ return { x:(P.x + e.x) / 2, y:1.25, z:(P.z + e.z) / 2 }; }
+
+  // ---------- enemy helpers ----------
+  const curMove = e => e.chain && e.chain[e.ci];
+  const isBehind = e => Math.abs(angDiff(e.yaw, yawTo(e, P))) > 1.9;
+  function endAttack(e){ e.state = 'neutral'; e.chain = null; e.strike = null; }
+  function stunEnemy(e, t){ e.state = 'stun'; e.t = t; e.chain = null; e.strike = null; e.softStun = false; }
+  function push(ent, from, amt){ const a = yawTo(from, ent); ent.kx += Math.sin(a) * amt; ent.kz += Math.cos(a) * amt; }
+  function hitSide(victim, attacker){ return angDiff(victim.yaw, yawTo(victim, attacker)) > 0 ? 0.3 : -0.3; }
+  function addPosture(e, amt){ if(!e.alive) return; e.posture += amt; e.postureT = 0; if(e.posture >= e.postureMax) deathblow(e); }
+  function deathblow(e){
+    e.posture = 0; e.justBroke = true;
+    const dmg = e.maxHp * 0.22 + 14;
+    slowmo(520, 0.15); hitstop = Math.max(hitstop, 12); screenFlash(0.4, '#ffffff'); zoomPunch(11); shake = Math.max(shake, 0.06); impact(4);
+    kickCam(P, e, 0.25);
+    sfx('deathblow');
+    const c = chestOf(e);
+    sparkBurst(c.x, c.y, c.z, '#ffe7a3', 50, 0.15);
+    const a = yawTo(P, e); blood(c.x, c.y, c.z, Math.sin(a), Math.cos(a), 44);
+    groundRing(e.x, e.z, '#ffd7a8', 0.24);
+    breakPart(e, 2); gainStat('str', 3, e);
+    e.hp -= dmg; e.flash = 1; e.recoil = 0.9; e.hitTilt = hitSide(e, P) * 1.5;
+    floatText(c.x, c.y + 0.6, c.z, 'DEATHBLOW', '#ffd166', 1.6);
+    floatText(c.x, c.y + 0.3, c.z, Math.round(dmg) + '', '#ffd166', 1.3);
+    push(e, P, 0.24);
+    stunEnemy(e, 18);
+    if(e.hp <= 0) killEnemy(e);
+  }
+  function startEnemyAttack(e, chain){
+    e.state = 'attack'; e.chain = chain; e.ci = 0;
+    e.skillTrack = chain[0].skill ? { n:chain.length, ok:0, src:e.type } : null;
+    beginMove(e);
+  }
+  function beginMove(e){
+    const m = e.chain[e.ci], extra = e.slowNext; e.slowNext = 0;
+    const tell = e.enraged ? Math.max(m.wind, Math.round(m.tell * 0.7)) : m.tell;
+    e.phase = 'tell'; e.t = tell + extra; e.tellTotal = e.t; e.strike = null;
+    if(m.skill && e.ci === 0) sfx('skill', 0.75);
+    else if(m.type === 'sweep') sfx('windSweep'); else if(m.type === 'thrust') sfx('windThrust'); else if(m.heavy) sfx('windup');
+  }
+  function enemyReact(eta, id){
+    for(const e of enemies){
+      if(!e.alive || dist(e, P) > 3.6 || isBehind(e)) continue;
+      const T = e.T;
+      // they remember what you keep throwing at them, and start answering it
+      e.mem = e.mem || {};
+      // mashing teaches them twice as fast
+      const mashing = pressLog.filter(f => frameNo - f < 60).length >= 5;
+      if(id) e.mem[id] = (e.mem[id] || 0) + (mashing ? 2 : 1);
+      if(id && (e.mem[id] >= 3 || mashing) && ['neutral','ready','recoil'].includes(e.state) && Math.random() < (mashing ? 0.6 : 0.7)){
+        if(id === 'crush'){ e.state = 'backstep'; e.t = 12; }
+        else if(id === 'rise'){ e.state = 'block'; e.t = 26; e.blockHits = 0; }
+        else { e.state = 'parry'; e.t = eta + 6; }
+        e.reactCd = T.reactCd; e.mem[id] = 1; e.chain = null; e.strike = null;
+        const c = chestOf(e); floatText(c.x, c.y + 0.9, c.z, 'READ', '#ff9a7a', 0.9);
+        hint('read', 'They read your pattern. Change your rhythm: pause mid-combo for different moves, feint, or wait for them.');
+        continue;
+      }
+      if(e.state === 'ready'){ if(Math.random() < 0.85){ e.state = 'parry'; e.t = eta + 6; e.reactCd = T.reactCd; } continue; }
+      if(e.state === 'stun' && e.softStun && e.reactCd <= 0){ if(Math.random() < T.block * 0.9){ e.state = 'block'; e.t = 24; e.softStun = false; e.blockHits = 0; } continue; }
+      if(e.state !== 'neutral' || e.reactCd > 0) continue;
+      e.read = Math.min(5, e.read + 1); e.readT = 90;
+      // sometimes they meet your swing with their own: that's how exchanges start
+      if(Math.random() < T.exchange * 0.35 && dist(e, P) < 3){ startEnemyAttack(e, brain(e).reply()); e.reactCd = 30; continue; }
+      const pParry = (T.parry * 0.35 + e.read * 0.05) * (1 - 0.5 * eWound(e)), roll = Math.random();
+      if(roll < pParry){ e.state = 'parry'; e.t = eta + 7; e.reactCd = T.reactCd; }
+      else if(roll < pParry + T.block){ e.state = 'block'; e.t = 30 + Math.floor(Math.random() * 20); e.blockHits = 0; e.reactCd = Math.floor(T.reactCd * 0.6); }
+      else if(roll < pParry + T.block + T.back){ e.state = 'backstep'; e.t = 12; e.reactCd = Math.floor(T.reactCd * 0.6); }
+      else e.reactCd = 10;
+    }
+  }
+
+  // ---------- blade collisions + exchanges ----------
+  let exStreak = 0, exLast = -999, exEnemy = null, streakShow = 0;
+  const playerSwinging = () => P.atkT > 0 && !P.atkHit && P.atkT <= P.atkHitFrame + 5;
+  function enemySwinging(e){
+    if(e.state !== 'attack' || e.disarmed) return false; // bare fists don't clash with a blade
+    const m = curMove(e); if(!m || m.type !== 'slash') return false;
+    return (e.phase === 'tell' && e.t <= 5) || (e.phase === 'active' && e.strike && !e.strike.resolved);
+  }
+  function checkCollisions(){
+    if(!playerSwinging()) return;
+    for(const e of enemies){
+      if(!e.alive || !enemySwinging(e)) continue;
+      const d = dist(P, e), m = curMove(e);
+      if(d > Math.max(P.atk.range, m.range) + 0.45) continue;
+      if(Math.abs(angDiff(P.yaw, yawTo(P, e))) > 1.0 || Math.abs(angDiff(e.yaw, yawTo(e, P))) > 1.0) continue;
+      // timing: frames until your blade lands vs frames until theirs releases
+      const pT = P.atkT - P.atkHitFrame, eT = e.phase === 'active' ? 0 : e.t;
+      if(pT + 1 < eT) continue; // you're clearly first: no clash, your hit lands as a counter
+      collide(e, m, Math.abs(pT - eT) <= 1 ? 'perfect' : 'late');
+      return;
+    }
+  }
+  function collide(e, m, quality){
+    const ePow = e.str * (m.heavy ? 1.5 : 1);
+    const pPow = P.str * (P.atk.big ? 1.3 : 1) * (P.atk.crush ? 1.2 : 1) * (quality === 'perfect' ? 1.25 : 0.62);
+    const r = pPow / ePow;
+    P.linkFrame = frameNo;
+    exStreak = (frameNo - exLast < 90 && exEnemy === e) ? exStreak + 1 : 1; exLast = frameNo; exEnemy = e;
+    const k = Math.min(exStreak, 6);
+    P.atkHit = true; P.atkT = 0; P.lock = 0; P.comboT = 0; // every clash restarts your string
+    e.chain = null; e.strike = null;
+    const c = bladeContact(e);
+    hitstop = Math.max(hitstop, 6 + k * 2);
+    sparkBurst(c.x, c.y, c.z, k >= 3 ? '#fff4c8' : '#ffe0a0', 22 + k * 10, 0.1 + k * 0.012);
+    sparkBurst(c.x, c.y, c.z, '#ff9a4a', 6 + k * 3, 0.06);
+    sfx('collide', k);
+    zoomPunch(3 + k * 1.2); shake = Math.max(shake, 0.02 + k * 0.008);
+    kickCam(e, P, 0.08 + k * 0.03);
+    screenFlash(0.08 + k * 0.03, '#fff2c4');
+    groundRing(c.x, c.z, '#ffd7a8', 0.14 + k * 0.02);
+    if(k >= 3 || m.heavy || P.atk.big) impact(2);
+    P.armRecoil = 12; P.recoilSide = P.atk.side || 1; e.armRecoil = 12; e.recoilSide = m.side || 1;
+    P.posture = Math.min(99, P.posture + (r >= 1.35 ? 3 : 6 + k * 2)); P.postureT = 0;
+    if(k >= 2) showStreak(k);
+    // even trade on a heavy, or a long exchange: lock blades
+    const even = r > 0.74 && r < 1.35;
+    if(even && (m.heavy || P.atk.big || (k >= 3 && Math.random() < 0.4))){ startBladeLock(e, c); return; }
+    addPosture(e, (r >= 1.35 ? 22 : 8 + k * 3));
+    damageWeapon(e, (r >= 1.35 ? 2 : 0) + (quality === 'perfect' ? 1 : 0));
+    if(!e.alive || e.justBroke) return;
+    if(r >= 1.35){
+      stunEnemy(e, 16); e.recoil = 0.5; push(e, P, 0.12); P.riposteT = 45; gainStat('str', 4, e);
+      floatText(c.x, c.y + 0.4, c.z, 'OVERPOWERED', '#7fe38a', 1.1);
+    } else if(r <= 0.74){
+      P.stunT = 14; P.recoil = 0.5; push(P, e, 0.14);
+      e.state = 'recoil'; e.t = 6; e.exReply = true;
+      floatText(c.x, c.y + 0.4, c.z, 'OVERPOWERED', '#ff6b6b', 1.1);
+    } else {
+      P.stunT = 7; push(P, e, 0.07); push(e, P, 0.07);
+      e.state = 'recoil'; e.t = 7 + Math.floor(rand(0, 6)); e.exReply = true;
+      floatText(c.x, c.y + 0.4, c.z, (quality === 'perfect' ? 'PERFECT ' : '') + (k > 1 ? 'CLASH  x' + k : 'CLASH'), quality === 'perfect' ? '#fff4c8' : '#ffe7a3', 1 + k * 0.06);
+    }
+    if(quality === 'late') hint('late', 'Late clash: their blade had the momentum. Meet the swing right as it releases to win the exchange.');
+  }
+  function showStreak(k){
+    const el = $('streak'); el.textContent = 'EXCHANGE  x' + k; el.style.opacity = 1; el.style.fontSize = (24 + k * 3) + 'px';
+    streakShow = 50;
+  }
+
+  // ---------- blade lock ----------
+  let BL = null;
+  function startBladeLock(e, c){
+    BL = { e, v:0, t:150, cx:c.x, cy:c.y, cz:c.z, grindT:0 };
+    // everyone else backs off and watches the lock
+    for(const o of enemies) if(o !== e && o.alive && o.state === 'attack'){ endAttack(o); o.cool = 30; }
+    e.state = 'bladelock'; e.chain = null; e.strike = null; e.t = 999;
+    P.stunT = 0; P.atkT = 0; P.parryT = 0; P.blocking = false;
+    const a = yawTo(P, e);
+    e.x = P.x + Math.sin(a) * 1.35; e.z = P.z + Math.cos(a) * 1.35; P.yaw = a; e.yaw = a + Math.PI;
+    e.vx = e.vz = P.vx = P.vz = 0;
+    sfx('clash'); slowmo(300, 0.3); impact(3); zoomPunch(8); camSide = 1;
+    floatText(c.x, c.y + 0.5, c.z, 'BLADE LOCK', '#ffffff', 1.3);
+    $('prompt').hidden = false;
+  }
+  function updateBladeLock(){
+    const e = BL.e;
+    if(!e.alive || !P.alive){ endBladeLock(); return; }
+    BL.t--;
+    const ratio = clamp(P.str / e.str, 0.6, 1.6);
+    if(has('attack')){ take('attack'); BL.v += 0.11 * ratio; sparkBurst(BL.cx, BL.cy, BL.cz, '#ffe0a0', 5, 0.05); P.flash = 0.15; }
+    BL.v -= 0.0072 / ratio * (0.7 + Math.random() * 0.6);
+    if(++BL.grindT % 7 === 0){ sfx('grind'); sparkBurst(BL.cx, BL.cy, BL.cz, '#ffb060', 3, 0.04); }
+    // whoever's winning drives the other back
+    const a = yawTo(P, e), off = BL.v * 0.006;
+    P.x += Math.sin(a) * off; P.z += Math.cos(a) * off; e.x += Math.sin(a) * off; e.z += Math.cos(a) * off;
+    shake = Math.max(shake, 0.006 + Math.abs(BL.v) * 0.01);
+    $('tugMark').style.left = (50 + BL.v * 48) + '%';
+    const c = bladeContact(e); BL.cx = c.x; BL.cy = c.y; BL.cz = c.z;
+    if(BL.v >= 1){
+      endBladeLock();
+      stunEnemy(e, 34); e.recoil = 0.9; e.hitTilt = 0.4; push(e, P, 0.26); addPosture(e, 45); P.riposteT = 50; damageWeapon(e, 2); gainStat('str', 5, e);
+      sfx('clash'); sfx('heavy'); slowmo(380, 0.18); impact(4); zoomPunch(10); hitstop = Math.max(hitstop, 10); kickCam(P, e, 0.3);
+      sparkBurst(c.x, c.y, c.z, '#d8ffdc', 60, 0.16); groundRing(e.x, e.z, '#bfffc4', 0.22);
+      floatText(c.x, c.y + 0.5, c.z, 'BROKE THROUGH', '#7fe38a', 1.4);
+    } else if(BL.v <= -1){
+      endBladeLock();
+      P.stunT = 26; P.recoil = 0.9; P.hitTilt = 0.4; push(P, e, 0.26); P.posture += 35; P.postureT = 0;
+      sfx('clash'); slowmo(300, 0.25); impact(3); hitstop = Math.max(hitstop, 8); kickCam(e, P, 0.3);
+      sparkBurst(c.x, c.y, c.z, '#ffc4c4', 50, 0.15);
+      floatText(c.x, c.y + 0.5, c.z, 'OVERPOWERED', '#ff6b6b', 1.4);
+      if(P.posture >= 100){ P.posture = 0; floatText(P.x, 2.1, P.z, 'GUARD BROKEN', '#ff6b6b', 1.2); e.state = 'execute'; e.t = 26; }
+      else startEnemyAttack(e, [M({ wind:8, hold:[0,2], heavy:true, active:8, rec:28, range:2.6, cone:0.9, dmg:18 })]);
+    } else if(BL.t <= 0){
+      endBladeLock();
+      push(P, e, 0.16); push(e, P, 0.16); P.stunT = 10; e.state = 'recoil'; e.t = 10; e.exReply = true;
+      sfx('collide', 3); floatText(c.x, c.y + 0.5, c.z, 'BREAK', '#ffe7a3', 1.2);
+    }
+  }
+  function endBladeLock(){
+    if(BL && BL.e.state === 'bladelock') BL.e.state = 'neutral';
+    BL = null; camSide = 0; $('prompt').hidden = true;
+  }
+
+  // ---------- enemy hitting you ----------
+  function strikeHits(e, m){
+    if(BL && BL.e !== e) return false;
+    const d = dist(e, P);
+    if(d > m.range + P.radius + e.radius * 0.5) return false;
+    if(Math.abs(angDiff(e.yaw, yawTo(e, P))) > m.cone) return false;
+    if(m.type === 'sweep') return P.y < 0.42;
+    return P.y < 1.5;
+  }
+  const facingToward = e => Math.abs(angDiff(P.yaw, yawTo(P, e))) < 1.4;
+  function resolveStrike(e, st){
+    st.resolved = true;
+    if(P.invuln){ floatText(P.x, 2, P.z, 'PERFECT DODGE', '#7fd8ff'); gainStat('spd', 4, e); return; }
+    if(st.type === 'grab'){ grabbed(e, st); return; }
+    const front = facingToward(e);
+    if(st.type === 'sweep'){ hurtPlayer(e, st); return; }
+    if(P.parryT > 0 && front){
+      if(st.type === 'thrust') thrustCounter(e); else if(!st.heavy) deflect(e); else heavyClash(e, st);
+      return;
+    }
+    if(P.blocking && front){
+      if(st.type === 'thrust'){ const c = contact(e); floatText(c.x, c.y + 0.4, c.z, 'PIERCED', '#ff6b6b', 1.1); hurtPlayer(e, st); }
+      else playerBlock(e, st);
+      return;
+    }
+    hurtPlayer(e, st);
+  }
+  function noteSkillParry(e){
+    const tr = e.skillTrack; if(!tr) return;
+    tr.ok++;
+    if(tr.ok >= tr.n){
+      e.skillTrack = null;
+      const id = tr.src === 'knight' ? 'rend' : 'flurry';
+      if(P.unlocked.has(id)) return;
+      P.learnProg[tr.src] = (P.learnProg[tr.src] || 0) + 1;
+      if(P.learnProg[tr.src] >= 2) unlock(id);
+      else { floatText(P.x, 2.6, P.z, 'SKILL READ  1/2', SKILLS[id].hex, 1.1); sfx('learn'); hint('learn', 'You deflected their whole skill. Do it once more and you learn it.'); }
+    }
+  }
+  function deflect(e){
+    P.parryT = 0; P.parryCd = 10; P.riposteT = 45; P.deflects++; checkUnlocks();
+    const c = bladeContact(e);
+    const em = curMove(e);
+    damageWeapon(e, 1); gainStat('def', 2, e);
+    if(em && em.skill){
+      // skill chains are locked in: deflecting a hit doesn't stop the rest, so be ready for the next one
+      P.parryCd = 0; e.armRecoil = 6; addPosture(e, 14); noteSkillParry(e);
+      hitstop = Math.max(hitstop, 5); sparkBurst(c.x, c.y, c.z, '#' + e.T.skillColor.toString(16).padStart(6, '0'), 18, 0.1);
+      sfx('clang', 1.1, 1.15); floatText(c.x, c.y + 0.3, c.z, 'DEFLECT', '#ffd166');
+      return;
+    }
+    stunEnemy(e, 12); e.recoil = 0.35; e.softStun = true; push(e, P, 0.04 + (P.def - 10) * 0.004); e.armRecoil = 10;
+    e.slowNext = Math.max(0, Math.round((P.def - 10) * 0.8)); // DEF: deflects delay their next swing
+    addPosture(e, 18);
+    hitstop = Math.max(hitstop, 7); shake = Math.max(shake, 0.02); kickCam(e, P, 0.06); zoomPunch(2);
+    sparkBurst(c.x, c.y, c.z, '#ffe7a3', 24, 0.1); screenFlash(0.1, '#fff2c4');
+    sfx('clang', 1.1, 1);
+    floatText(c.x, c.y + 0.3, c.z, 'DEFLECT', '#ffd166');
+  }
+  function thrustCounter(e){
+    P.parryT = 0; P.parryCd = 10; P.riposteT = 45; P.deflects++; checkUnlocks();
+    const c = bladeContact(e);
+    damageWeapon(e, 1); gainStat('def', 3, e);
+    stunEnemy(e, 18); e.recoil = 0.5; push(e, P, 0.08); e.armRecoil = 12;
+    addPosture(e, 35);
+    hitstop = Math.max(hitstop, 9); shake = Math.max(shake, 0.04); zoomPunch(5); impact(2); kickCam(e, P, 0.1);
+    sparkBurst(c.x, c.y, c.z, '#fff0b8', 32, 0.12); screenFlash(0.14, '#fff2c4');
+    sfx('clang', 1.3, 1.2);
+    floatText(c.x, c.y + 0.3, c.z, 'THRUST COUNTERED', '#ffd166', 1.1);
+  }
+  function heavyClash(e, st){
+    P.parryT = 0; P.parryCd = 10;
+    const r = P.str / e.str, c = bladeContact(e);
+    hitstop = Math.max(hitstop, 12); shake = Math.max(shake, 0.05); zoomPunch(7); impact(3); kickCam(e, P, 0.15);
+    sfx('clash'); screenFlash(0.2, '#ffffff'); slowmo(260, 0.3);
+    sparkBurst(c.x, c.y, c.z, r >= 1.2 ? '#d8ffdc' : r > 0.85 ? '#fff0b8' : '#ffc4c4', 44, 0.14);
+    groundRing(c.x, c.z, '#ffd7a8', 0.2);
+    P.armRecoil = 12; e.armRecoil = 14;
+    if(r > 0.85 && curMove(e) && curMove(e).skill) noteSkillParry(e);
+    if(r > 0.85) damageWeapon(e, r >= 1.2 ? 2 : 1);
+    if(r >= 1.2){
+      stunEnemy(e, 14); e.recoil = 0.7; push(e, P, 0.2); addPosture(e, 35); P.riposteT = 45; gainStat('str', 5, e);
+      floatText(c.x, c.y + 0.4, c.z, 'CLASH WON', '#7fe38a', 1.2);
+    } else if(r > 0.85){
+      startBladeLock(e, c);
+    } else {
+      const chip = st.dmg * 0.45 * takenMult();
+      P.hp -= chip; P.flash = 1; P.stunT = 10; P.recoil = 0.5; push(P, e, 0.16); passiveStat('def', 4, e);
+      floatText(c.x, c.y + 0.4, c.z, 'CLASH LOST  -' + Math.round(chip), '#ff6b6b', 1.15);
+      checkDeath();
+    }
+  }
+  function grabbed(e, st){
+    const d = st.dmg * takenMult();
+    P.hp -= d; P.flash = 1; P.recoil = 0.9; P.stunT = 40; P.atkT = 0; P.parryT = 0; P.skill = null; P.combo = 0; P.hitTilt = 0.5;
+    push(P, e, 0.3); P.vy = 0.1; P.onGround = false;
+    sfx('heavy'); sfx('hurt'); shake = Math.max(shake, 0.07); hitstop = Math.max(hitstop, 10); zoomPunch(8); impact(3); kickCam(e, P, 0.3);
+    screenFlash(0.3, '#ff3030');
+    const a = yawTo(e, P); blood(P.x, 1.2, P.z, Math.sin(a), Math.cos(a), 24);
+    floatText(P.x, 2.3, P.z, 'GRABBED  -' + Math.round(d), '#ff6b6b', 1.3);
+    hint('grab', 'Grabbed. When a free hand reaches for you, only a roll works. Block and parry do nothing.');
+    checkDeath();
+  }
+  function playerBlock(e, st){
+    P.hp -= st.dmg * (st.heavy ? 0.35 : 0.12) * takenMult();
+    P.posture += (st.heavy ? 40 : 16) + (st.bash ? 26 : 0); P.postureT = 0;
+    passiveStat('def', 1.5, e);
+    if(st.bash){ push(P, e, 0.1); hint('bash', 'Shield bashes chew through your guard. Parry them or step away.'); }
+    push(P, e, st.heavy ? 0.1 : 0.04); P.recoil = st.heavy ? 0.35 : 0.15; P.armRecoil = 6;
+    const c = bladeContact(e);
+    sparkBurst(c.x, c.y, c.z, '#cfd8ff', 10, 0.06);
+    sfx('block'); kickCam(e, P, st.heavy ? 0.1 : 0.04);
+    if(P.posture >= 100){
+      P.posture = 0; P.stunT = 30; P.blocking = false; P.recoil = 0.6; push(P, e, 0.12);
+      sfx('clang', 1.2, 0.7); shake = Math.max(shake, 0.04); hitstop = Math.max(hitstop, 6); impact(2);
+      floatText(P.x, 2.1, P.z, 'GUARD BROKEN', '#ff6b6b', 1.2);
+      e.state = 'execute'; e.t = 26; e.chain = null; e.strike = null;
+    } else { hitstop = Math.max(hitstop, st.heavy ? 5 : 3); }
+    checkDeath();
+  }
+  function hurtPlayer(e, st){
+    // caught mid-windup: counter-hit, it hurts more and you're stuck longer
+    const counter = (P.atkT > 0 && !P.atkHit) || (P.skill && P.skill.phase !== 'motion');
+    P.skill = null;
+    const d = st.dmg * takenMult() * (counter ? 1.35 : 1);
+    P.hp -= d; P.flash = 1; P.recoil = st.heavy ? 0.7 : 0.4; P.hitTilt = hitSide(P, e) * (st.heavy ? 1.4 : 1);
+    P.stunT = Math.round(((st.heavy ? 20 : 12) + (counter ? 8 : 0) + (st.bash ? 6 : 0)) * stunMult()); push(P, e, st.heavy ? 0.14 : st.bash ? 0.18 : 0.06);
+    if(P.drinkT > 0){ P.drinkT = 0; floatText(P.x, 2.5, P.z, 'FLASK SPILLED', '#ff9a7a', 0.9); }
+    passiveStat('vit', d * 0.25, e); passiveStat('def', d * 0.1, e);
+    if(counter){ floatText(P.x, 2.35, P.z, 'COUNTER', '#ff6b6b', 1); impact(1); hint('countered', 'Counter-hit: you got hit during your own windup. Swinging into their attack early is how you get punished.'); }
+    P.combo = 0; P.atkT = 0; P.parryT = 0;
+    const a = yawTo(e, P);
+    blood(P.x, 1.2, P.z, Math.sin(a), Math.cos(a), st.heavy ? 22 : 12);
+    floatText(P.x, 2.0, P.z, '-' + Math.round(d), '#ff6b6b');
+    sfx(st.heavy ? 'heavy' : 'hurt');
+    shake = Math.max(shake, st.heavy ? 0.05 : 0.02); hitstop = Math.max(hitstop, st.heavy ? 9 : 5);
+    kickCam(e, P, st.heavy ? 0.2 : 0.08); if(st.heavy) impact(2);
+    screenFlash(st.heavy ? 0.24 : 0.12, '#ff3030');
+    checkDeath();
+  }
+  function checkDeath(){
+    if(P.hp <= 0 && P.alive){
+      P.hp = 0; P.alive = false; slowmo(900, 0.2); sfx('fall'); endBladeLock();
+      onDeath();
+    }
+  }
+
+  // ---------- you hitting enemies ----------
+  function playerHits(e, hit){
+    if(!e.alive) return;
+    e.justBroke = false;
+    const behind = isBehind(e), cc = chestOf(e);
+    // the shield takes anything from the front while he isn't swinging
+    if(e.T.shield && !e.shieldBroken && !behind && ['neutral','ready','recoil','backstep'].includes(e.state)){ e.state = 'block'; e.t = 18; e.blockHits = 0; }
+    if(!behind && e.state === 'parry' && (hit.crush || hit.skill)){
+      // a guard crush or sword skill into a parry is a STR contest, like a heavy
+      const c = bladeContact(e), r = P.str * 1.3 / e.str;
+      P.skill = null;
+      sfx('clash'); impact(3); zoomPunch(7); hitstop = Math.max(hitstop, 11); kickCam(P, e, 0.15);
+      sparkBurst(c.x, c.y, c.z, '#fff0b8', 40, 0.14);
+      if(r >= 1.2){ stunEnemy(e, 18); push(e, P, 0.2); addPosture(e, 35); floatText(c.x, c.y + 0.4, c.z, 'OVERPOWERED', '#7fe38a', 1.2); }
+      else if(r > 0.85) startBladeLock(e, c);
+      else { P.stunT = 20; push(P, e, 0.16); P.armRecoil = 12; endAttack(e); startEnemyAttack(e, brain(e).counter()); floatText(c.x, c.y + 0.4, c.z, 'PARRIED', '#ff6b6b', 1.1); }
+      return;
+    }
+    if(!behind && e.state === 'block' && hit.crush){
+      const c = bladeContact(e);
+      e.hp -= hit.dmg * 0.5 * (P.str / 10) * (20 / (10 + e.def)); e.flash = 1;
+      stunEnemy(e, 20); e.recoil = 0.6; e.armRecoil = 14; push(e, P, 0.14);
+      sfx('clash'); impact(2); zoomPunch(5); hitstop = Math.max(hitstop, 10); kickCam(P, e, 0.14);
+      sparkBurst(c.x, c.y, c.z, '#cfd8ff', 34, 0.13); groundRing(e.x, e.z, '#cfd8ff', 0.2);
+      floatText(cc.x, cc.y + 0.6, cc.z, 'GUARD CRUSH', '#cfd8ff', 1.25);
+      damageShield(e, 3);
+      addPosture(e, hit.post * 1.4);
+      if(e.hp <= 0) killEnemy(e);
+      return;
+    }
+    if(!behind && e.state === 'parry'){
+      const c = bladeContact(e);
+      P.stunT = 12; P.atkT = 0; P.combo = 0; P.comboT = 0; P.recoil = 0.35; P.armRecoil = 10;
+      hitstop = Math.max(hitstop, 7); shake = Math.max(shake, 0.02); kickCam(e, P, 0.06);
+      sparkBurst(c.x, c.y, c.z, '#ffe7a3', 20, 0.09); sfx('clang', 1.1, 1.1);
+      floatText(c.x, c.y + 0.3, c.z, 'DEFLECTED', '#ff9a7a');
+      endAttack(e); startEnemyAttack(e, brain(e).counter());
+      return;
+    }
+    if(!behind && e.state === 'block'){
+      const c = bladeContact(e);
+      e.hp -= hit.dmg * 0.12 * (P.str / 10) * (20 / (10 + e.def)); e.flash = 0.6;
+      e.t = Math.max(e.t, 14); e.blockHits++; e.recoil = 0.12; push(e, P, 0.03); e.armRecoil = 6;
+      sparkBurst(c.x, c.y, c.z, '#cfd8ff', 10, 0.06); sfx('block'); kickCam(P, e, 0.04);
+      floatText(cc.x, cc.y + 0.5, cc.z, 'BLOCKED', '#cfd8ff', 0.9);
+      hitstop = Math.max(hitstop, 4);
+      damageShield(e, hit.big || hit.skill ? 2 : 1);
+      addPosture(e, hit.post * 1.2);
+      if(e.alive && e.state === 'block' && e.blockHits >= 2 && Math.random() < 0.45){ e.blockHits = 0; startEnemyAttack(e, brain(e).counter()); }
+      if(e.hp <= 0) killEnemy(e);
+      return;
+    }
+    const exposed = e.state === 'whiff';
+    const cm = curMove(e);
+    const counter = e.state === 'attack' && e.phase === 'tell';
+    const dropBonus = hit.drop && (e.y > 0.05 || e.state === 'stun') ? 1.35 : 1;
+    const d = hit.dmg * (behind ? 1.25 : 1) * (exposed ? 1.3 : 1) * (counter ? 1.3 : 1) * dropBonus * (P.str / 10) * (20 / (10 + e.def));
+    e.hp -= d; e.flash = 1; e.recoil = hit.big ? 0.6 : 0.3; e.hitTilt = hitSide(e, P) * (hit.big ? 1.4 : 1);
+    if(counter){ floatText(cc.x, cc.y + 1.0, cc.z, 'COUNTER', '#ffb07a', 1); impact(1); }
+    if((hit.big || hit.skill) && Math.random() < 0.3) breakPart(e, 1);
+    const a = yawTo(P, e);
+    blood(cc.x, cc.y, cc.z, Math.sin(a), Math.cos(a), hit.big ? 20 : 10);
+    sparkBurst(cc.x, cc.y, cc.z, '#ffffff', hit.big ? 10 : 5, 0.08);
+    sfx(hit.big ? 'heavy' : 'hit', hit.big ? 1.4 : 1);
+    hitstop = Math.max(hitstop, hit.big ? 9 : 5); shake = Math.max(shake, hit.big ? 0.035 : 0.012);
+    kickCam(P, e, hit.big ? 0.16 : 0.06);
+    if(hit.big){ zoomPunch(3); impact(1); }
+    floatText(cc.x + rand(-0.2, 0.2), cc.y + 0.5, cc.z, Math.max(1, Math.round(d)) + '', exposed ? '#ffd166' : hit.stale ? '#8f88a6' : '#ffffff');
+    if(behind) floatText(cc.x, cc.y + 0.8, cc.z, 'BACKSTAB', '#ffb07a', 0.85);
+    gainStat('str', hit.skill ? 0.9 : 0.5, e);
+    if(e.hp <= 0){ killEnemy(e); return; }
+    addPosture(e, (hit.post || hit.dmg * 0.6) * (behind ? 1.5 : 1) * (exposed ? 1.6 : 1) * (counter ? 1.4 : 1));
+    if(!e.alive || e.justBroke) return;
+    const light = !hit.big && !hit.rise && !hit.crush && !hit.skill;
+    // combo breaker: the third light flinch in a row doesn't stick, they swing through it
+    if(frameNo - (e.flinchF || -999) > 50) e.flinchN = 0;
+    const tryStun = t => {
+      if(hit.stale && light && !exposed) return; // worn-out moves don't even make them flinch
+      if(light && (e.flinchN || 0) >= 2 && !exposed){
+        e.flinchN = 0; e.state = 'neutral'; startEnemyAttack(e, brain(e).reply());
+        floatText(cc.x, cc.y + 1.0, cc.z, 'COMBO BREAK', '#ff9a7a', 1);
+        hint('break', 'Light hits stop flinching them after a couple in a row. Mix in pauses, heavies, or back off.');
+        return;
+      }
+      stunEnemy(e, t); e.flinchN = (e.flinchN || 0) + 1; e.flinchF = frameNo;
+    };
+    if(hit.rise && !e.T.boss){
+      stunEnemy(e, 26); e.vy = 0.09; e.flinchN = 0;
+      floatText(cc.x, cc.y + 1.0, cc.z, 'OFF BALANCE', '#ffd7a8', 1);
+    } else if(e.state === 'attack'){
+      if(counter && !(cm && cm.heavy) && !e.T.armored){ tryStun(16); if(e.state === 'stun') floatText(cc.x, cc.y + 0.8, cc.z, 'INTERRUPTED', '#ffffff', 0.9); }
+    } else if(exposed || e.state === 'ready'){ tryStun(exposed ? 16 : 10); }
+    else if(['neutral','backstep','stun','recoil'].includes(e.state)){ if(!e.T.poise || hit.big) tryStun(hit.big ? 16 : 10); }
+    if(hit.drop && dropBonus > 1){ e.vy = -0.12; groundRing(e.x, e.z, '#ffd7a8', 0.18); }
+    if(!e.T.poise && e.state !== 'attack') push(e, P, hit.big ? 0.12 : 0.04);
+    else if(hit.big) push(e, P, 0.05);
+  }
+  function killEnemy(e){
+    if(!e.alive) return;
+    if(BL && BL.e === e) endBladeLock();
+    e.alive = false; e.dead = 120; e.hp = 0; e.state = 'dead'; kills++;
+    push(e, P, 0.1);
+    sfx('fall'); slowmo(420, 0.2); impact(2);
+    const c = chestOf(e), a = yawTo(P, e);
+    blood(c.x, c.y, c.z, Math.sin(a), Math.cos(a), 34);
+    if(P.hp < P.maxHp * 0.25){ gainStat('vit', 6, e); floatText(P.x, 2.6, P.z, 'CLUTCH', '#7fe38a', 1.2); }
+    P.hp = Math.min(P.maxHp, P.hp + 8);
+    log(e.name + ' down', 'win');
+    checkUnlocks();
+    if(lockT === e) lockT = enemies.find(o => o.alive && o !== e) || null;
+    spawnTimer = 150;
+  }
+
+  // ---------- camera ----------
+  const cam = { yaw:0, pitch:0.26, dist:4.4 };
+  const camTarget = new THREE.Vector3();
+
+  // ---------- player update ----------
+  function nextMoveId(){
+    const last = P.comboT > 0 ? P.lastMove : null;
+    if(!last || MOVES[last].end) return 'a1';
+    const quick = P.atkT > 0 || P.sinceAtk <= 10;
+    // pause branches only open after a move that actually connected
+    const pause = !quick && P.sinceAtk >= 12 && P.linkFrame >= P.atkStartFrame;
+    if(last === 'a1') return pause ? 'rise' : 'a2';
+    if(last === 'a2') return pause ? 'crush' : 'a3';
+    if(last === 'rise') return 'drop';
+    return 'a1';
+  }
+  function startAttack(){
+    const id = nextMoveId(), base = MOVES[id];
+    // perfect link: the click landed right on the last hit's spark, not mashed into it
+    const pf = pressLog[pressLog.length - 1];
+    const mashed = pressLog.some(f => f < P.linkFrame && f >= P.linkFrame - 10 && f > P.atkStartFrame + 1);
+    P.perfect = id !== 'a1' && pf != null && pf - P.linkFrame >= 0 && pf - P.linkFrame <= 6 && !mashed;
+    const s = Object.assign({}, base, P.perfect ? { startup:Math.max(3, base.startup - 3), total:base.total - 3 } : {});
+    const w = woundP();
+    const fm = (1 + 0.25 * w) * clamp(1 - (P.stats.spd - 10) * 0.012, 0.7, 1); // wounds slow you, SPD speeds you up
+    if(fm !== 1){ s.startup = Math.max(3, Math.round(s.startup * fm)); s.total = Math.round(s.total * fm); s.lock = Math.round(s.lock * fm); }
+    // stale moves: the same move over and over loses its bite
+    P.recent = P.recent.filter(r => frameNo - r.f < 240);
+    const n = P.recent.filter(r => r.id === id).length;
+    P.recent.push({ id, f:frameNo });
+    P.staleMult = Math.max(0.4, 1 - 0.18 * n);
+    P.moveId = id; P.lastMove = id; P.sinceAtk = 0; P.atkStartFrame = frameNo;
+    P.atk = s; P.atkTotal = s.total; P.atkT = s.total; P.atkHitFrame = s.total - s.startup; P.atkHit = false;
+    P.lock = s.lock; P.comboT = s.end ? s.total + 4 : s.total + 40;
+    PTRAIL.mesh.material.color.setHex(P.perfect ? 0xffd27a : 0xbfe6ff);
+    if(P.perfect){ sfx('clang', 0.35, 2.2); }
+    if(s.name) floatText(P.x, 2.3, P.z, s.name, '#ffd7a8', 0.85);
+    if(!lockT) P.yaw = cam.yaw;
+    // small step-in when locked and just out of reach. never a glide.
+    if(lockT && lockT.alive){
+      const d = dist(P, lockT), gap = d - (s.range - 0.3);
+      if(gap > 0 && d < 3.4){ const a = yawTo(P, lockT), k = clamp(gap * 0.05, 0, 0.08); P.kx += Math.sin(a) * k; P.kz += Math.cos(a) * k; }
+    }
+    enemyReact(s.startup, id);
+  }
+  function meleeHit(){
+    const mashed = pressLog.filter(f => frameNo - f < 60).length >= 5;
+    const s = P.atk, mult = P.staleMult * (P.perfect ? 1.15 : 1) * (mashed ? 0.8 : 1);
+    sfx('swing', s.big ? 1.4 : 1);
+    P.kx += Math.sin(P.yaw) * 0.05; P.kz += Math.cos(P.yaw) * 0.05;
+    let landed = false;
+    for(const e of enemies){
+      if(!e.alive || e.state === 'bladelock') continue;
+      const d = dist(P, e);
+      if(d <= s.range + e.radius && Math.abs(angDiff(P.yaw, yawTo(P, e))) <= 1.15 && Math.abs(P.y - e.y) < 1.4){
+        landed = true;
+        playerHits(e, { dmg:s.dmg * mult, post:s.post * mult, big:!!s.big, crush:!!s.crush, rise:!!s.rise, drop:!!s.drop, stale:P.staleMult < 0.7 });
+      }
+    }
+    if(landed) P.linkFrame = frameNo;
+    else whiffed();
+  }
+  function startSkill(slot, connect){
+    const id = P.loadout[slot]; if(!id) return false;
+    const d = skillDef(id);
+    if(d.counterOnly && P.riposteT <= 0){ floatText(P.x, 2.3, P.z, 'NO OPENING', '#958ca8', 0.85); return false; }
+    P.skill = { def:d, slot, phase:'pre', t:connect ? Math.ceil(d.pre / 2) : d.pre, hits:new Set(), hitT:0, landed:false, connected:!!connect };
+    P.skillCd[slot] = d.cd; P.atkT = 0; P.parryT = 0; P.comboT = 0; P.riposteT = 0;
+    PTRAIL.mesh.material.color.setHex(d.color);
+    sfx('skill', slot === 'Q' ? 1 : 1.25);
+    if(connect){ floatText(P.x, 2.45, P.z, 'SKILL CONNECT', '#ffffff', 1.15); screenFlash(0.12, d.hex); zoomPunch(4); impact(1); }
+    if(lockT && lockT.alive) P.yaw = yawTo(P, lockT);
+    enemyReact(P.skill.t, id);
+    return true;
+  }
+  function skillHit(e, d, big){
+    if(!P.skill.landed){ P.skill.landed = true; gainMastery(d.id, P.skill.connected ? 2 : 1); }
+    playerHits(e, { dmg:d.dmg * (big && d.lastHeavy ? 1.6 : 1), post:d.posture * (big && d.lastHeavy ? 1.6 : 1), big:!!big || !!d.contact, crush:!!d.crush, rise:!!d.rise, skill:true });
+  }
+  // your skill meets their skill at the same moment: the glows collide
+  function skillClash(e){
+    const c = bladeContact(e), r = P.str * 1.2 / e.str, d = P.skill.def;
+    P.skill = null; e.chain = null; e.strike = null;
+    sfx('clash'); sfx('collide', 6); impact(4); zoomPunch(10); hitstop = Math.max(hitstop, 14); slowmo(420, 0.2); kickCam(e, P, 0.2);
+    sparkBurst(c.x, c.y, c.z, d.hex, 40, 0.16); sparkBurst(c.x, c.y, c.z, '#' + e.T.skillColor.toString(16).padStart(6, '0'), 40, 0.16);
+    groundRing(c.x, c.z, d.hex, 0.26); screenFlash(0.3, '#ffffff');
+    floatText(c.x, c.y + 0.6, c.z, 'SKILL CLASH', '#ffffff', 1.4);
+    if(r > 0.85 && r < 1.25) startBladeLock(e, c);
+    else if(r >= 1.25){ stunEnemy(e, 24); push(e, P, 0.22); addPosture(e, 40); }
+    else { P.stunT = 22; push(P, e, 0.22); e.state = 'recoil'; e.t = 8; e.exReply = true; }
+  }
+  function updateSkill(){
+    const S = P.skill, d = S.def;
+    S.t--;
+    if(S.phase === 'pre'){
+      if(lockT && lockT.alive) P.yaw = turnToward(P.yaw, yawTo(P, lockT), 0.3);
+      P.vx *= 0.6; P.vz *= 0.6;
+      if(S.t <= 0){ S.phase = 'motion'; S.t = d.motion; S.hitT = 0; sfx('swing', 1.7); if(d.dash) dust(P.x, P.z, 8); }
+    } else if(S.phase === 'motion'){
+      if(d.spin) P.yaw += TAU / d.motion;
+      const fx = Math.sin(P.yaw), fz = Math.cos(P.yaw), sp = d.dash ? d.dash * (S.t > 2 ? 1 : 0.3) : (d.step || 0);
+      P.vx = fx * sp; P.vz = fz * sp;
+      for(const e of enemies){
+        if(!e.alive || e.state !== 'attack' || e.phase !== 'active') continue;
+        const em = curMove(e);
+        if(em && em.skill && dist(P, e) < 2.8 && Math.abs(angDiff(P.yaw, yawTo(P, e))) < 1.0 && Math.abs(angDiff(e.yaw, yawTo(e, P))) < 1.0){ skillClash(e); return; }
+      }
+      if(d.contact){
+        for(const e of enemies){
+          if(!e.alive || S.hits.has(e) || e.state === 'bladelock') continue;
+          if(dist(P, e) < e.radius + 1.3 && Math.abs(angDiff(P.yaw, yawTo(P, e))) < 1.2){ S.hits.add(e); skillHit(e, d, true); if(!P.skill) return; }
+        }
+      }
+      const swingNow = (d.hitEvery && S.hitT % d.hitEvery === 0) || (d.hitAt != null && S.hitT === d.hitAt);
+      if(swingNow){
+        sfx('swing', 1.1);
+        const lastHit = d.hitEvery && S.hitT + d.hitEvery >= d.motion;
+        for(const e of enemies){
+          if(!e.alive || e.state === 'bladelock') continue;
+          if(dist(P, e) <= d.range + e.radius && Math.abs(angDiff(P.yaw, yawTo(P, e))) <= (d.cone || 1.15)){ skillHit(e, d, lastHit || d.hitAt != null); if(!P.skill) return; }
+        }
+      }
+      S.hitT++;
+      if(S.t <= d.connect){
+        const other = S.slot === 'Q' ? 'E' : 'Q';
+        if(has('skill' + other) && P.skillCd[other] <= 0){ take('skill' + other); if(startSkill(other, true)) return; }
+      }
+      if(S.t <= 0){ S.phase = 'post'; S.t = d.post; hint('post', 'Sword skills leave you frozen after. Chain the other skill right at the end to skip the freeze.'); }
+    } else {
+      P.vx *= 0.7; P.vz *= 0.7;
+      if(S.t <= 0) P.skill = null;
+    }
+  }
+
+  // swinging at air leaves you hanging, and anyone close will make you pay
+  function whiffed(){
+    P.lock += 14; P.whiffT = 16; P.comboT = 0;
+    for(const e of enemies){
+      if(!e.alive || dist(e, P) > 3.4 || isBehind(e)) continue;
+      if((e.state === 'neutral' || e.state === 'ready') && Math.random() < 0.65){
+        startEnemyAttack(e, brain(e).reply()); e.cool = 0;
+        hint('whiff', 'You swung at air and they punished it. Whiffs leave you open.');
+        break;
+      }
+    }
+  }
+  function updatePlayer(){
+    for(const k of ['comboT','lock','parryT','parryCd','dodgeCd','stunT','armRecoil','whiffT','riposteT']) if(P[k] > 0) P[k]--;
+    if(woundP() > 0.05) hint('wound', 'You\'re wounded: slower moves, swings, rolls, parries and skills. Press R to drink a flask. Getting hit mid-drink spills it.');
+    if(P.drinkT > 0){
+      P.drinkT--;
+      if(frameNo % 4 === 0) emit(SPARKS, P.x + rand(-0.2, 0.2), rand(0.4, 1.6), P.z + rand(-0.2, 0.2), 0, rand(0.01, 0.02), 0, '#9fffb0', 22, 0, false);
+      if(P.drinkT === 18){ const heal = P.maxHp * 0.4; P.hp = Math.min(P.maxHp, P.hp + heal); sfx('healed'); floatText(P.x, 2.3, P.z, '+' + Math.round(heal) + ' HP', '#7fe38a', 1.1); }
+    }
+    if(P.atkT <= 0) P.sinceAtk++;
+    if(P.comboT <= 0 && P.atkT <= 0) P.combo = 0;
+    P.flash *= 0.8; P.recoil *= 0.86; P.hitTilt *= 0.85;
+    if(++P.postureT > 50) P.posture = Math.max(0, P.posture - 0.45);
+    for(const k of ['Q','E']) if(P.skillCd[k] > 0) P.skillCd[k]--;
+    if(!P.alive){ P.kx *= 0.85; P.kz *= 0.85; P.x += P.kx; P.z += P.kz; return; }
+    if(BL){ updateBladeLock(); P.kx *= 0.8; P.kz *= 0.8; return; }
+    if(P.skill){
+      updateSkill();
+      P.kx *= 0.82; P.kz *= 0.82; P.x += P.vx + P.kx; P.z += P.vz + P.kz;
+      const r2 = Math.hypot(P.x, P.z); if(r2 > ARENA){ P.x *= ARENA / r2; P.z *= ARENA / r2; }
+      P.vy -= 0.0062; P.y += P.vy; if(P.y <= 0){ P.y = 0; P.vy = 0; P.onGround = true; }
+      P.blocking = false; P.invuln = false;
+      return;
+    }
+
+    const iz = (keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0), ix = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+    const fx = Math.sin(cam.yaw), fz = Math.cos(cam.yaw), rx = -Math.cos(cam.yaw), rz = Math.sin(cam.yaw);
+    let mx = fx * iz + rx * ix, mz = fz * iz + rz * ix;
+    const ml = Math.hypot(mx, mz); if(ml > 0){ mx /= ml; mz /= ml; }
+    const busy = P.dodgeT > 0 || P.stunT > 0 || P.drinkT > 0;
+
+    if(lockT && lockT.alive) P.yaw = turnToward(P.yaw, yawTo(P, lockT), busy ? 0.05 : 0.3);
+    else if(ml > 0 && !busy && P.atkT <= 0) P.yaw = turnToward(P.yaw, Math.atan2(mx, mz), 0.22);
+
+    if(has('flask') && !busy && P.atkT <= 0){
+      take('flask');
+      if(P.flasks > 0 && P.hp < P.maxHp){ P.flasks--; P.drinkT = 40; sfx('drink'); }
+      else if(P.flasks <= 0) floatText(P.x, 2.2, P.z, 'NO FLASKS', '#958ca8', 0.9);
+    }
+    if(has('parry') && P.dodgeT <= 0 && P.stunT <= 0 && P.drinkT <= 0){
+      take('parry');
+      if(P.atkT > 0 && !P.atkHit){ P.atkT = 0; P.lock = 0; floatText(P.x, 2.1, P.z, 'FEINT', '#cfd8ff', 0.8); }
+      if(P.parryCd <= 0){ P.parryT = Math.max(9, 15 - Math.round(4 * woundP())); P.parryCd = 30; P.atkT = 0; if(lockT) P.yaw = yawTo(P, lockT); }
+    }
+    if(has('dodge') && P.dodgeCd <= 0 && P.dodgeT <= 0 && P.stunT <= 0 && P.onGround && P.drinkT <= 0){
+      take('dodge');
+      P.dodgeT = 18; P.dodgeCd = Math.round(Math.max(24, 38 - (P.stats.spd - 10) * 0.8)); P.atkT = 0; P.parryT = 0;
+      if(ml > 0){ P.ddx = mx; P.ddz = mz; } else { P.ddx = -Math.sin(P.yaw); P.ddz = -Math.cos(P.yaw); }
+      sfx('dodge'); dust(P.x, P.z, 5);
+    }
+    if(has('jump') && P.onGround && !busy && P.atkT <= 0){ take('jump'); P.vy = 0.118; P.onGround = false; dust(P.x, P.z, 4); }
+    const lateDodge = P.dodgeT > 0 && P.dodgeT <= 5;
+    if(has('attack') && (!busy || lateDodge) && P.lock <= 0 && P.parryT <= 0){ take('attack'); P.dodgeT = 0; startAttack(); }
+    for(const k of ['Q','E']){
+      if(has('skill' + k) && (!busy || lateDodge) && P.skillCd[k] <= 0 && P.parryT <= 0 && P.lock <= 0 && P.onGround){ take('skill' + k); P.dodgeT = 0; startSkill(k, false); break; }
+    }
+
+    P.blocking = guardHeld() && P.parryT <= 0 && P.dodgeT <= 0 && P.stunT <= 0 && P.atkT <= 0;
+    P.invuln = P.dodgeT > 6;
+
+    let tvx = 0, tvz = 0;
+    if(P.dodgeT > 0){
+      P.dodgeT--;
+      const sp = (P.dodgeT > 6 ? 0.15 : 0.05) * (1 - 0.22 * woundP());
+      P.vx = P.ddx * sp; P.vz = P.ddz * sp;
+      P.roll = (1 - P.dodgeT / 18) * TAU * (Math.cos(angDiff(P.yaw, Math.atan2(P.ddx, P.ddz))) >= 0 ? 1 : -1);
+    } else {
+      P.roll = 0;
+      if(P.stunT <= 0){
+        const sp = 0.072 * spdMult() * (P.atkT > 0 ? 0.35 : 1) * (P.blocking ? 0.45 : 1) * (P.parryT > 0 ? 0.4 : 1) * (lockT ? 0.85 : 1) * (1 - 0.28 * woundP()) * (P.drinkT > 0 ? 0.3 : 1);
+        tvx = mx * sp; tvz = mz * sp;
+      }
+      const r = P.onGround ? 0.22 : 0.08;
+      P.vx += (tvx - P.vx) * r; P.vz += (tvz - P.vz) * r;
+    }
+    P.kx *= 0.82; P.kz *= 0.82;
+    P.x += P.vx + P.kx; P.z += P.vz + P.kz;
+    const rr = Math.hypot(P.x, P.z); if(rr > ARENA){ P.x *= ARENA / rr; P.z *= ARENA / rr; }
+    // SPD grows from moving while a fight is on
+    const pspd = Math.hypot(P.vx, P.vz);
+    if(pspd > 0.04 && P.dodgeT <= 0){
+      const near = enemies.find(o => o.alive && dist(o, P) < 6);
+      if(near){ P.runAcc += pspd; if(P.runAcc > 3){ P.runAcc = 0; gainStat('spd', 0.35, near); } }
+    }
+    const wasAir = !P.onGround;
+    P.vy -= 0.0062; P.y += P.vy;
+    if(P.y <= 0){ if(wasAir && P.vy < -0.08){ sfx('land'); dust(P.x, P.z, 6); } P.y = 0; P.vy = 0; P.onGround = true; }
+    if(P.atkT > 0){
+      P.atkT--;
+      if(!P.atkHit && P.atkT <= P.atkHitFrame){ P.atkHit = true; meleeHit(); }
+    }
+  }
+
+  // ---------- enemy update ----------
+  function neutralAI(e){
+    const T = e.T, d = dist(e, P), want = yawTo(e, P);
+    e.yaw = turnToward(e.yaw, want, T.turn * (e.enraged ? 1.3 : 1));
+    const spd = T.spd * (1 - 0.25 * eWound(e)) * (e.enraged ? 1.2 : 1);
+    // group fights: one presses, the rest flank and wait. any opening and they all pile in.
+    const pressing = enemies.some(o => o !== e && o.alive && o.state === 'attack');
+    const open = P.stunT > 0 || P.whiffT > 0 || (P.skill && P.skill.phase === 'post');
+    const holding = (pressing && !open && !T.assassin) || (BL && BL.e !== e);
+    let tx, tz;
+    if(T.assassin){
+      // circles to your back, and every so often just isn't where he was
+      const a = P.yaw + Math.PI + Math.sin(e.age * 0.012 + e.seed) * 0.5;
+      tx = P.x + Math.sin(a) * 1.7; tz = P.z + Math.cos(a) * 1.7;
+      if(--e.blinkCd <= 0 && d < 6 && Math.random() < 0.02){
+        dust(e.x, e.z, 10); sfx('dodge');
+        e.x = P.x + Math.sin(P.yaw + Math.PI) * 1.6; e.z = P.z + Math.cos(P.yaw + Math.PI) * 1.6; e.yaw = yawTo(e, P);
+        dust(e.x, e.z, 10); e.blinkCd = 300; e.cool = Math.min(e.cool, 10);
+      }
+    } else if(holding){
+      const a = P.yaw + e.flank, r = T.pref + 1.0;
+      tx = P.x + Math.sin(a) * r; tz = P.z + Math.cos(a) * r;
+    }
+    if(tx != null){
+      const dx = tx - e.x, dz = tz - e.z, dl = Math.hypot(dx, dz) || 1, go = Math.min(1, dl / 0.6);
+      e.vx += ((dx / dl) * spd * go - e.vx) * 0.12; e.vz += ((dz / dl) * spd * go - e.vz) * 0.12;
+    } else {
+      const ux = Math.sin(want), uz = Math.cos(want), px = uz, pz = -ux;
+      let fwd = 0;
+      if(d > T.pref + 0.5) fwd = spd; else if(d < T.pref - 0.5) fwd = -spd * 0.7;
+      const strafe = Math.sin(e.age * 0.02 + e.seed) * spd * 0.65;
+      e.vx += ((ux * fwd + px * strafe) - e.vx) * 0.12; e.vz += ((uz * fwd + pz * strafe) - e.vz) * 0.12;
+    }
+    const facingOk = Math.abs(angDiff(e.yaw, want)) < 0.35;
+    if(open && !BL && d < 3.6 && facingOk && Math.random() < 0.15){ startEnemyAttack(e, brain(e).reply()); return; }
+    if(holding) return;
+    if(e.readyCd > 0) e.readyCd--;
+    else if(d < T.pref + 1.2 && facingOk && Math.random() < T.ready / 60){ e.state = 'ready'; e.t = 28 + Math.floor(Math.random() * 34); e.readyCd = 90; return; }
+    if(e.cool <= 0 && facingOk){ const ch = brain(e).choose(e, d); if(ch) startEnemyAttack(e, ch); else e.cool = 12; }
+  }
+  function attackAI(e){
+    const m = curMove(e);
+    e.t--;
+    if(e.phase === 'tell'){
+      const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
+      // weight shifts back during the windup, then they lunge in on release
+      e.vx += (-fx * 0.006 - e.vx) * 0.3; e.vz += (-fz * 0.006 - e.vz) * 0.3;
+      e.yaw = turnToward(e.yaw, yawTo(e, P), e.T.tellTurn);
+      if(e.t <= 0){
+        e.phase = 'active'; e.t = m.active;
+        e.strike = { dmg:m.dmg, heavy:!!m.heavy, type:m.type, bash:!!m.bash, resolved:false };
+        if(m.leap){
+          const d = dist(e, P); e.vy = 0.16;
+          e.leapVx = clamp((P.x - e.x) / 50, -0.12, 0.12); e.leapVz = clamp((P.z - e.z) / 50, -0.12, 0.12);
+          dust(e.x, e.z, 14); sfx('swing', 1.8);
+        }
+        sfx('swing', m.heavy ? 1.5 : 0.9);
+        if(m.dash || m.heavy) dust(e.x, e.z, 6);
+        if(m.slam){ sfx('heavy'); dust(e.x, e.z, 16); groundRing(e.x, e.z, '#ff9a6a', 0.22); shake = Math.max(shake, 0.04); }
+      }
+    } else if(e.phase === 'active'){
+      if(m.leap){
+        e.vx = e.leapVx; e.vz = e.leapVz;
+        if(e.y <= 0 && e.vy === 0 && e.t < m.active - 5){
+          // landing: shockwave you have to jump
+          e.vx = e.vz = 0; shake = Math.max(shake, 0.07); zoomPunch(6); impact(2); sfx('heavy'); sfx('land');
+          dust(e.x, e.z, 22); groundRing(e.x, e.z, '#ff6a4a', 0.32); groundRing(e.x, e.z, '#ffd7a8', 0.2);
+          if(!e.strike.resolved && dist(e, P) < m.range && P.y < 0.42) resolveStrike(e, e.strike);
+          if(e.state !== 'attack') return;
+          e.phase = 'rec'; e.t = m.rec; e.strike = null;
+        } else if(e.t <= 0){ e.phase = 'rec'; e.t = m.rec; e.strike = null; }
+        return;
+      }
+      const sp = m.dash || (m.step * 2.2 * (e.t / m.active));
+      e.vx = Math.sin(e.yaw) * sp; e.vz = Math.cos(e.yaw) * sp;
+      if(!e.strike.resolved && strikeHits(e, m)){ resolveStrike(e, e.strike); if(e.state !== 'attack') return; }
+      if(e.t <= 0){ e.phase = 'rec'; e.t = Math.round(m.rec * (1 + 0.4 * eWound(e))); e.strike = null; }
+    } else {
+      e.vx *= 0.6; e.vz *= 0.6;
+      if(e.t <= 0){
+        e.ci++;
+        if(e.ci >= e.chain.length){ endAttack(e); e.cool = e.T.cool + Math.floor(rand(0, 20)); }
+        else beginMove(e);
+      }
+    }
+  }
+  function roarBlast(e){
+    sfx('roar'); shake = Math.max(shake, 0.08); zoomPunch(9); impact(2); screenFlash(0.22, '#b0302f');
+    groundRing(e.x, e.z, '#ff6a5a', 0.34); dust(e.x, e.z, 26);
+    if(dist(e, P) < 4.5 && !P.invuln && P.alive){
+      push(P, e, 0.3); P.stunT = Math.max(P.stunT, 16); P.skill = null; P.atkT = 0;
+      P.hp -= 6 * takenMult(); P.flash = 1; checkDeath();
+    }
+    log('The Warden roars. He fights faster now, and he leaps.', 'lose', 4000);
+  }
+  function landExecution(e){
+    if(!P.alive || P.invuln || dist(e, P) > 3) return;
+    const d = 22 + e.str * 0.6;
+    P.hp -= d; P.flash = 1; P.recoil = 0.9; P.hitTilt = 0.5; push(P, e, 0.2); P.stunT = Math.max(P.stunT, 14);
+    sfx('heavy'); sfx('clang', 1.1, 0.55); slowmo(420, 0.2); hitstop = Math.max(hitstop, 10); shake = Math.max(shake, 0.06); zoomPunch(8); impact(3);
+    kickCam(e, P, 0.3); screenFlash(0.35, '#ff2020');
+    const a = yawTo(e, P); blood(P.x, 1.2, P.z, Math.sin(a), Math.cos(a), 30);
+    floatText(P.x, 2.2, P.z, 'EXECUTED  -' + Math.round(d), '#ff4b4b', 1.4);
+    checkDeath();
+  }
+  function updateEnemies(){
+    for(const e of enemies){
+      e.flash *= 0.8; e.recoil *= 0.86; e.hitTilt *= 0.85; if(e.armRecoil > 0) e.armRecoil--;
+      if(!e.alive){
+        e.dead--; e.fall += (-1.45 - e.fall) * 0.1;
+        e.kx *= 0.9; e.kz *= 0.9; e.x += e.kx; e.z += e.kz;
+        continue;
+      }
+      e.age++;
+      if(e.cool > 0) e.cool--;
+      if(e.reactCd > 0) e.reactCd--;
+      if(e.readT > 0) e.readT--; else if(e.read > 0){ e.read--; e.readT = 40; }
+      if(++e.postureT > 70) e.posture = Math.max(0, e.posture - 0.3 * (0.25 + 0.75 * e.hp / e.maxHp));
+      if(e.T.boss && !e.phase2 && e.hp < e.maxHp * 0.5 && ['neutral','stun','recoil'].includes(e.state)){
+        e.phase2 = true; e.enraged = true; e.state = 'roar'; e.t = 60; e.chain = null; e.strike = null;
+      }
+      if(!P.alive){ e.vx *= 0.8; e.vz *= 0.8; }
+      else switch(e.state){
+        case 'neutral': neutralAI(e); break;
+        case 'attack': attackAI(e); break;
+        case 'bladelock': e.vx = e.vz = 0; break;
+        case 'roar': e.vx *= 0.6; e.vz *= 0.6; if(--e.t === 44) roarBlast(e); if(e.t <= 0){ e.state = 'neutral'; e.cool = 16; } break;
+        case 'recoil':
+          e.vx *= 0.7; e.vz *= 0.7;
+          if(--e.t <= 0){
+            const go = Math.random(), ex = e.T.exchange + Math.min(exStreak, 5) * 0.05;
+            if(e.exReply && go < ex) startEnemyAttack(e, brain(e).reply());
+            else if(e.exReply && go < ex + 0.2){ e.state = 'ready'; e.t = 24; }
+            else { e.state = 'neutral'; e.cool = 18; }
+            e.exReply = false;
+          }
+          break;
+        case 'stun': e.vx *= 0.7; e.vz *= 0.7; if(--e.t <= 0){ e.state = 'neutral'; e.softStun = false; e.cool = Math.max(e.cool, 10); } break;
+        case 'ready': e.vx *= 0.7; e.vz *= 0.7; e.yaw = turnToward(e.yaw, yawTo(e, P), e.T.turn); if(--e.t <= 0){ e.state = 'neutral'; e.cool = Math.min(e.cool, 6); } break;
+        case 'parry': e.vx *= 0.6; e.vz *= 0.6; if(--e.t <= 0){ e.state = 'whiff'; e.t = 18; const c = chestOf(e); floatText(c.x, c.y + 0.7, c.z, 'WHIFFED', '#ffb07a', 0.9); } break;
+        case 'whiff': e.vx *= 0.6; e.vz *= 0.6; if(--e.t <= 0) e.state = 'neutral'; break;
+        case 'block': e.vx *= 0.8; e.vz *= 0.8; e.yaw = turnToward(e.yaw, yawTo(e, P), e.T.turn); if(--e.t <= 0){ e.state = 'neutral'; e.blockHits = 0; } break;
+        case 'backstep': { const a = yawTo(P, e); e.vx = Math.sin(a) * 0.1 * (e.t / 12); e.vz = Math.cos(a) * 0.1 * (e.t / 12); if(--e.t <= 0) e.state = 'neutral'; break; }
+        case 'execute': { const a = yawTo(e, P); e.yaw = a; if(e.t > 14){ e.vx = Math.sin(a) * 0.04; e.vz = Math.cos(a) * 0.04; } else { e.vx *= 0.6; e.vz *= 0.6; } if(--e.t === 8) landExecution(e); if(e.t <= 0){ e.state = 'neutral'; e.cool = 24; } break; }
+      }
+      e.kx *= 0.82; e.kz *= 0.82;
+      e.x += e.vx + e.kx; e.z += e.vz + e.kz;
+      const rr = Math.hypot(e.x, e.z); if(rr > ARENA){ e.x *= ARENA / rr; e.z *= ARENA / rr; }
+      if(e.y > 0 || e.vy){ e.vy -= 0.0062; e.y += e.vy; if(e.y <= 0){ if(e.vy < -0.06){ dust(e.x, e.z, 6); sfx('land'); } e.y = 0; e.vy = 0; } }
+      if(e.mem && e.age % 300 === 0) for(const k in e.mem) e.mem[k] = Math.floor(e.mem[k] / 2);
+      if(eWound(e) > 0 && e.age % 16 === 0) emit(BLOOD, e.x + rand(-0.15, 0.15), 1.0, e.z + rand(-0.15, 0.15), 0, 0, 0, '#7a0f18', 500, 0.006, true);
+    }
+    const ents = [P, ...enemies.filter(e => e.alive)];
+    for(let i = 0; i < ents.length; i++) for(let j = i + 1; j < ents.length; j++){
+      const a = ents[i], b = ents[j];
+      if(a === P && P.dodgeT > 0) continue;
+      const dx = b.x - a.x, dz = b.z - a.z, d = Math.hypot(dx, dz) || 0.001, min = a.radius + b.radius;
+      if(d < min){ const pz = (min - d) / 2; a.x -= dx / d * pz; a.z -= dz / d * pz; b.x += dx / d * pz; b.z += dz / d * pz; }
+    }
+    for(let i = enemies.length - 1; i >= 0; i--) if(!enemies[i].alive && enemies[i].dead <= 0){ removeEnemy(enemies[i]); enemies.splice(i, 1); }
+    if(started && mode === 'arena' && P.alive && !enemies.some(e => e.alive)){
+      if(--spawnTimer <= 0){ spawnWave(); P.flasks = Math.min(3, P.flasks + 1); }
+    }
+  }
+
+  // ---------- poses ----------
+  const LOCK_POSE = (side) => ({ lean:0.38, crouch:0.32, armUp:0.62, armYaw:0.05 * side, ext:0.72, tilt:0.55, swordYaw:-0.45 * side, stride:0.85 });
+  function recoilPose(b, side){ return Object.assign(b, { lean:-0.18, crouch:0.2, armUp:1.05, armYaw:-0.9 * side, ext:0.4, tilt:0.9, stride:0.1 }); }
+  function playerPoseTarget(){
+    const b = newPose();
+    if(!P.alive) return [Object.assign(b, { lean:-0.3, crouch:0.5, armUp:-0.6, ext:0.2 }), 0.15];
+    if(BL){ const tr = Math.sin(frameNo * 0.9) * 0.025; const p = LOCK_POSE(1); p.armUp += tr; p.lean += BL.v * 0.08; return [Object.assign(b, p), 0.4]; }
+    if(P.dodgeT > 0) return [Object.assign(b, { lean:0.5, crouch:0.8, tuck:0.9, armUp:-0.3, ext:0.2, stride:0 }), 0.5];
+    if(P.drinkT > 0) return [Object.assign(b, { lean:-0.15, crouch:0.16, armUp:-0.5, armYaw:0.6, ext:0.3, tilt:0.3, stride:0.1 }), 0.35];
+    if(P.skill){
+      const S = P.skill, d = S.def;
+      if(S.phase === 'pre'){ const tr = Math.sin(frameNo * 1.1) * 0.02; const pp = Object.assign({}, d.prePose); pp.armUp += tr; return [Object.assign(b, pp), 0.45]; }
+      if(S.phase === 'motion'){
+        if(d.spin) return [Object.assign(b, { lean:d.lean, crouch:d.crouch, armUp:0.1, armYaw:1.45, ext:1, tilt:0.02, stride:0.6 }), 0.9];
+        if(d.thrust){ const q = easeOut(1 - S.t / d.motion); return [Object.assign(b, { lean:d.lean, crouch:d.crouch, armUp:0.12, armYaw:0, ext:q, tilt:0, stride:1 }), 0.95]; }
+        if(d.hitEvery){
+          const q = easeBack((S.hitT % d.hitEvery) / d.hitEvery), sd = Math.floor(S.hitT / d.hitEvery) % 2 ? -1 : 1;
+          return [Object.assign(b, { lean:d.lean, crouch:d.crouch, armUp:0.35 + 0.1 * sd, armYaw:sd * (1.35 - 2.65 * q), ext:0.95, tilt:0.12, stride:0.9 }), 0.95];
+        }
+        const q = easeBack(1 - S.t / d.motion);
+        return [Object.assign(b, { lean:d.lean, crouch:d.crouch, armUp:d.from.armUp + (d.to.armUp - d.from.armUp) * q, armYaw:d.from.armYaw + (d.to.armYaw - d.from.armYaw) * q, ext:1, tilt:d.from.tilt + (d.to.tilt - d.from.tilt) * q, stride:1 }), 0.95];
+      }
+      return [Object.assign(b, { lean:0.45, crouch:0.42, armUp:-0.15, armYaw:-1.2, ext:1, tilt:0.05, stride:1 }), 0.2];
+    }
+    if(P.armRecoil > 0) return [recoilPose(b, P.recoilSide), 0.85];
+    if(P.whiffT > 0 && P.atkT <= 0){ const sd = P.atk ? P.atk.side : 1; return [Object.assign(b, { lean:0.5, crouch:0.32, armUp:-0.45, armYaw:-1.25 * sd, ext:1, tilt:0.05, stride:1 }), 0.3]; }
+    if(P.stunT > 0) return [Object.assign(b, { lean:-0.35 - P.recoil * 0.4, crouch:0.18, armUp:-0.4, armYaw:0.7, ext:0.3, tilt:0.3, stride:0 }), 0.4];
+    if(P.parryT > 0) return [Object.assign(b, { lean:0.12, crouch:0.26, armUp:0.75, armYaw:-0.2, ext:0.75, tilt:0.95, swordYaw:1.05, stride:0.4 }), 0.75];
+    if(P.blocking) return [Object.assign(b, { lean:-0.04 - P.recoil * 0.4, crouch:0.3, armUp:0.55, armYaw:-0.25, ext:0.55, tilt:0.2, swordYaw:1.35, stride:0.35 }), 0.4];
+    if(P.atkT > 0){
+      const s = P.atk, p = 1 - P.atkT / P.atkTotal, pS = (P.atkTotal - P.atkHitFrame) / P.atkTotal;
+      if(p < pS){ const k = easeOut(p / pS);
+        return [Object.assign(b, { lean:-0.12 * k, crouch:0.15 + (s.big ? 0.22 : 0.1) * k, armUp:b.armUp + (s.from.armUp - b.armUp) * k, armYaw:b.armYaw + (s.from.armYaw - b.armYaw) * k, ext:0.45, tilt:b.tilt + (s.from.tilt - b.tilt) * k, stride:-0.2 * k }), 0.55]; }
+      const q = easeBack((p - pS) / (1 - pS));
+      return [Object.assign(b, { lean:s.lean, crouch:s.crouch, armUp:s.from.armUp + (s.to.armUp - s.from.armUp) * q, armYaw:s.from.armYaw + (s.to.armYaw - s.from.armYaw) * q, ext:0.95, tilt:s.from.tilt + (s.to.tilt - s.from.tilt) * q, stride:0.9 }), 0.92];
+    }
+    if(!P.onGround) return [Object.assign(b, { tuck:0.6, lean:0.1, stride:0 }), 0.25];
+    const wd = woundP();
+    return [Object.assign(b, { lean:0.06 + wd * 0.14 + Math.hypot(P.vx, P.vz) * 1.2 - P.recoil * 0.4, crouch:0.12 + wd * 0.12, stride:lockT ? 0.3 : 0.12 }), 0.25];
+  }
+  function enemyPoseTarget(e){
+    const b = newPose();
+    if(!e.alive) return [Object.assign(b, { lean:-0.2, crouch:0.2, armUp:-0.8, ext:0.1, stride:0 }), 0.15];
+    if(e.state === 'bladelock'){ const p = LOCK_POSE(-1); p.armUp += Math.sin(frameNo * 0.8 + 1) * 0.025; if(BL) p.lean -= BL.v * 0.08; return [Object.assign(b, p), 0.4]; }
+    if(e.armRecoil > 0 && e.state !== 'attack') return [recoilPose(b, e.recoilSide), 0.85];
+    switch(e.state){
+      case 'stun': return [Object.assign(b, { lean:-0.3 - e.recoil * 0.5, crouch:0.12, armUp:-0.4, armYaw:0.7, ext:0.2, tilt:0.3, stride:0 }), 0.4];
+      case 'recoil': return [recoilPose(b, e.recoilSide), 0.6];
+      case 'parry': return [Object.assign(b, { lean:0.08, crouch:0.24, armUp:0.75, armYaw:-0.2, ext:0.75, tilt:0.95, swordYaw:1.05, stride:0.4 }), 0.7];
+      case 'block': return [Object.assign(b, { lean:-0.04 - e.recoil * 0.4, crouch:0.3, armUp:0.55, armYaw:-0.25, ext:0.55, tilt:0.2, swordYaw:1.35, stride:0.35 }), 0.45];
+      case 'ready': return [Object.assign(b, { lean:0.02, crouch:0.34, armUp:0.65, armYaw:0.0, ext:0.7, tilt:1.25, swordYaw:0.2, stride:0.45 }), 0.3];
+      case 'whiff': return [Object.assign(b, { lean:-0.2, crouch:0.14, armUp:1.0, armYaw:-0.5, ext:0.95, tilt:1.1, swordYaw:1.2, stride:0.2 }), 0.5];
+      case 'backstep': return [Object.assign(b, { lean:-0.25, crouch:0.32, ext:0.3, stride:-0.3 }), 0.4];
+      case 'roar': return [Object.assign(b, { lean:-0.45, crouch:0.3, armUp:1.4, armYaw:-0.4, ext:0.4, tilt:0.6, reach:0.8, stride:0.4 }), 0.3];
+      case 'execute': return e.t > 8 ? [Object.assign(b, { lean:-0.3, crouch:0.45, armUp:2.0, armYaw:0, ext:0.3, tilt:0.6, stride:-0.2 }), 0.35] : [Object.assign(b, { lean:0.55, crouch:0.45, armUp:-0.6, armYaw:0, ext:1, tilt:0.1, stride:1 }), 0.9];
+      case 'attack': if(curMove(e)) return attackPose(e, b); e.state = 'neutral'; break;
+    }
+    return [Object.assign(b, { lean:0.06 + Math.hypot(e.vx, e.vz) * 1.0 - e.recoil * 0.5, stride:0.3 }), 0.25];
+  }
+  function attackPose(e, b){
+    const m = curMove(e), tell = e.phase === 'tell', act = e.phase === 'active';
+    const p = tell ? easeOut(Math.min(1, (e.tellTotal - e.t) / m.wind)) : 1, q = act ? easeBack(1 - e.t / m.active) : 0;
+    const br = tell && p >= 1 ? Math.sin(e.age * 0.25) * 0.03 : 0;
+    const side = m.side || 1;
+    if(m.leap){
+      if(tell) return [Object.assign(b, { lean:0.15 * p + br, crouch:0.15 + 0.55 * p, armUp:0.35 + 1.6 * p, armYaw:0.1, ext:0.4, tilt:0.6, stride:0.3 }), 0.35];
+      if(act) return [Object.assign(b, { lean:e.y > 0.2 ? 0.2 : 0.65, crouch:e.y > 0.2 ? 0.1 : 0.6, armUp:e.y > 0.2 ? 2.2 : -0.8, armYaw:0, ext:1, tilt:0.2, stride:0.6 }), e.y > 0.2 ? 0.3 : 0.9];
+    }
+    if(m.type === 'grab'){
+      if(tell) return [Object.assign(b, { lean:0.15 * p + br, crouch:0.2 + 0.25 * p, armUp:-0.3, armYaw:0.8, ext:0.3, tilt:0.3, reach:0.7 * p, stride:-0.2 * p }), 0.35];
+      if(act) return [Object.assign(b, { lean:0.55, crouch:0.35, armUp:-0.3, armYaw:0.8, ext:0.3, tilt:0.3, reach:1, stride:1 }), 0.9];
+    }
+    if(m.slam){
+      if(tell) return [Object.assign(b, { lean:-0.25 * p + br, crouch:0.15 + 0.3 * p, armUp:0.35 + 1.9 * p, armYaw:0.1, ext:0.4, tilt:0.6, stride:-0.2 * p }), 0.3];
+      if(act) return [Object.assign(b, { lean:0.65, crouch:0.6, armUp:2.2 - 3.1 * q, armYaw:0, ext:1, tilt:0.1, stride:0.8 }), 0.9];
+    }
+    if(m.bash){
+      if(tell) return [Object.assign(b, { lean:-0.1 * p, crouch:0.25, armUp:0.2, armYaw:0.6, ext:0.3, tilt:0.8, reach:0.1, stride:-0.3 * p }), 0.4];
+      if(act) return [Object.assign(b, { lean:0.5, crouch:0.3, armUp:0.2, armYaw:0.6, ext:0.3, tilt:0.8, reach:1, stride:1 }), 0.9];
+    }
+    if(m.type === 'sweep'){
+      if(tell) return [Object.assign(b, { lean:0.1 * p + br, crouch:0.12 + 0.5 * p, armUp:0.35 - 1.05 * p, armYaw:0.35 + 1.25 * p, ext:0.5, tilt:0.1, stride:0.5 * p }), 0.35];
+      if(act) return [Object.assign(b, { lean:0.35, crouch:0.62, armUp:-0.7, armYaw:1.6 - 3.2 * q, ext:1, tilt:-0.05, stride:1 }), 0.9];
+    }
+    if(m.type === 'thrust'){
+      if(tell) return [Object.assign(b, { lean:-0.15 * p + br, crouch:0.15 + 0.3 * p, armUp:0.15, armYaw:0.25, ext:0.45 - 0.45 * p, tilt:0.02, stride:-0.3 * p }), 0.35];
+      if(act) return [Object.assign(b, { lean:0.5, crouch:0.38, armUp:0.12, armYaw:0, ext:1, tilt:0, stride:1 }), 0.9];
+    }
+    if(m.heavy){
+      if(tell) return [Object.assign(b, { lean:-0.3 * p + br, crouch:0.12 + 0.36 * p, armUp:0.35 + 1.75 * p, armYaw:0.35 - 0.3 * p, ext:0.45 - 0.2 * p, tilt:0.9 - 0.3 * p, stride:-0.25 * p }), 0.3];
+      if(act) return [Object.assign(b, { lean:0.55, crouch:0.42, armUp:2.1 - 2.8 * q, armYaw:0, ext:1, tilt:0.15, stride:1 }), 0.9];
+    }
+    if(tell) return [Object.assign(b, { lean:-0.12 * p, crouch:0.12 + 0.14 * p, armUp:0.35 + 0.15 * p, armYaw:0.35 + (1.35 * side - 0.35) * p, ext:0.4, tilt:0.9 - 0.7 * p, stride:-0.2 * p }), 0.45];
+    if(act) return [Object.assign(b, { lean:0.3, crouch:0.24, armUp:0.3, armYaw:1.35 * side - 2.6 * side * q, ext:0.95, tilt:0.15, stride:0.9 }), 0.92];
+    return [Object.assign(b, { lean:0.15, crouch:0.22, armUp:-0.2, armYaw:-0.6, ext:0.7, tilt:0.3, stride:0.5 }), 0.22];
+  }
+
+  function updateVisuals(){
+    const [pt, pr] = playerPoseTarget(); blendPose(P.pose, pt, pr);
+    const ps = Math.hypot(P.vx, P.vz);
+    P.walkAmt += ((P.onGround && P.dodgeT <= 0 && !BL ? Math.min(1, ps / 0.07) : 0) - P.walkAmt) * 0.2;
+    P.phase += ps * 2.2 * (Math.sin(P.phase) > 0 ? 1 : 1 - 0.45 * woundP()); // limp when hurt
+    const si = Math.floor(P.phase / Math.PI); if(si !== P.lastStep){ P.lastStep = si; if(P.walkAmt > 0.5 && P.onGround) sfx('step'); }
+    PR.root.position.set(P.x, P.y, P.z); PR.root.rotation.y = P.yaw;
+    applyPose(PR, P.pose, P.phase, P.walkAmt, !P.onGround, P.roll);
+    secondary(PR, P, lockT && lockT.alive ? lockT : null);
+    // blade glints softly while a pause-branch is available
+    const branch = P.atkT <= 0 && P.comboT > 0 && P.lastMove && !MOVES[P.lastMove].end && P.sinceAtk >= 12;
+    const skillLit = P.skill && P.skill.phase !== 'post';
+    setFlash(PR, P.flash, skillLit ? P.skill.def.color : P.parryT > 0 ? 0xffd166 : P.blocking ? 0x9fb4ff : branch ? 0xb08a3a : 0);
+    if(skillLit){ PR.tipMark.getWorldPosition(_v2); PR.midMark.getWorldPosition(_v1); emit(SPARKS, _v2.x, _v2.y, _v2.z, rand(-0.01, 0.01), rand(0, 0.02), rand(-0.01, 0.01), P.skill.def.hex, 18, 0, false); emit(SPARKS, _v1.x, _v1.y, _v1.z, rand(-0.01, 0.01), rand(0, 0.02), rand(-0.01, 0.01), P.skill.def.hex, 14, 0, false); }
+    updateTrail(PTRAIL, PR, (P.atkT > 0 && P.atkT <= P.atkHitFrame + 1) || (P.skill && P.skill.phase === 'motion'), 9);
+    for(const e of enemies){
+      const [et, er] = enemyPoseTarget(e); blendPose(e.pose, et, er);
+      const es = Math.hypot(e.vx, e.vz);
+      e.walkAmt += ((e.alive && e.state !== 'attack' ? Math.min(1, es / 0.05) : 0) - e.walkAmt) * 0.2;
+      e.walk += es * 2.2;
+      e.R.root.position.set(e.x, e.y, e.z); e.R.root.rotation.y = e.yaw;
+      e.R.root.rotation.x = e.alive ? 0 : e.fall;
+      applyPose(e.R, e.pose, e.walk, e.walkAmt, false, 0);
+      if(e.alive) secondary(e.R, e, P);
+      const em = e.state === 'attack' ? curMove(e) : null, eLit = em && em.skill && e.phase !== 'rec';
+      setFlash(e.R, e.flash, eLit ? e.T.skillColor : e.state === 'parry' ? 0xffd166 : e.state === 'block' ? 0x9fb4ff : 0);
+      if(eLit){ e.R.root.updateMatrixWorld(true); e.R.tipMark.getWorldPosition(_v2); emit(SPARKS, _v2.x, _v2.y, _v2.z, rand(-0.01, 0.01), rand(0, 0.02), rand(-0.01, 0.01), '#' + e.T.skillColor.toString(16).padStart(6, '0'), 16, 0, false); }
+      if(!e.alive){ const a = clamp(e.dead / 60, 0, 1); e.R.root.scale.setScalar(0.4 + 0.6 * a); e.R.root.visible = e.dead > 2; }
+      if(!e.disarmed) updateTrail(e.trail, e.R, e.alive && e.state === 'attack' && e.phase === 'active', 7);
+      if(e.T.assassin && e.alive){ const si = Math.floor(e.walk / Math.PI); if(si !== e.lastStep){ e.lastStep = si; if(e.walkAmt > 0.4){ sfx('step'); sfx('step'); } } }
+    }
+  }
+
+  function updateCamera(){
+    const lk = lockT && lockT.alive;
+    if(lk){
+      cam.yaw += angDiff(cam.yaw, yawTo(P, lockT)) * 0.12;
+      cam.pitch += (0.24 - cam.pitch) * 0.08;
+    } else {
+      cam.yaw -= mouse.dx * 0.0028;
+      cam.pitch = clamp(cam.pitch + mouse.dy * 0.002, -0.15, 0.95);
+    }
+    mouse.dx = 0; mouse.dy = 0;
+    const fx = Math.sin(cam.yaw), fz = Math.cos(cam.yaw), rxx = -Math.cos(cam.yaw), rzz = Math.sin(cam.yaw);
+    const dd = cam.dist * (BL ? 0.78 : 1), cd = dd * Math.cos(cam.pitch);
+    const sideOff = (lk ? 0.85 : 0.45) + camSide * 0.9;
+    const s = shake;
+    camera.position.set(
+      P.x - fx * cd + rxx * sideOff + camKick.x + rand(-s, s),
+      1.45 + Math.sin(cam.pitch) * dd + camKick.y + rand(-s, s) * 0.6,
+      P.z - fz * cd + rzz * sideOff + camKick.z + rand(-s, s));
+    if(lk) camTarget.lerp(_v1.set(P.x + (lockT.x - P.x) * 0.55 + rxx * 0.3, 1.15, P.z + (lockT.z - P.z) * 0.55 + rzz * 0.3), 0.25);
+    else camTarget.lerp(_v1.set(P.x + fx * 1.2 + rxx * 0.3, 1.3, P.z + fz * 1.2 + rzz * 0.3), 0.3);
+    camera.lookAt(camTarget);
+    const fov = BASE_FOV - fovPunch;
+    if(Math.abs(camera.fov - fov) > 0.01){ camera.fov = fov; camera.updateProjectionMatrix(); }
+  }
+
+  // ---------- main loop ----------
+  function update(){
+    frameNo++;
+    shake *= 0.85; if(shake < 0.002) shake = 0;
+    camKick.x *= 0.8; camKick.y *= 0.8; camKick.z *= 0.8;
+    fovPunch *= 0.9; flashA *= 0.84;
+    stepPoints(SPARKS); stepPoints(BLOOD); stepPoints(DUST); stepRings(); stepDebris();
+    if(bannerT > 0 && --bannerT === 0) $('banner').style.opacity = 0;
+    if(streakShow > 0 && --streakShow === 0) $('streak').style.opacity = 0;
+    if(hitstop > 0){ hitstop--; return; }
+    checkCollisions();
+    updatePlayer();
+    updateEnemies();
+    updateRun();
+    updateVisuals();
+    for(const k in buf) if(buf[k] > 0) buf[k]--;
+  }
+  function updateHud(){
+    $('hpFill').style.width = (100 * Math.max(0, P.hp) / P.maxHp) + '%';
+    $('hpText').textContent = Math.ceil(Math.max(0, P.hp)) + ' / ' + P.maxHp;
+    $('guardFill').style.width = P.posture + '%';
+    $('guardText').textContent = Math.round(P.posture) + '%';
+    $('kills').textContent = kills;
+    $('flasks').textContent = P.flasks;
+    for(const k in statRows){ const r = statRows[k]; const v = String(P.stats[k]); if(r.v.textContent !== v) r.v.textContent = v; r.fill.style.width = (100 * P.xp[k] / statNeed(k)) + '%'; }
+    for(const k of ['Q','E']){
+      const el = $('cd' + k), cd = P.skillCd[k]; if(cd > 0){ el.hidden = false; el.textContent = (cd / 60).toFixed(1); } else el.hidden = true;
+      const id = P.loadout[k], S = id && SKILLS[id];
+      if(S){
+        if($('name' + k).textContent !== S.name){ $('name' + k).textContent = S.name; $('glow' + k).style.background = S.hex; }
+        $('lv' + k).textContent = 'Lv' + mast(id).lv;
+        $('slot' + k).classList.toggle('ready', !!S.counterOnly && P.riposteT > 0);
+      }
+    }
+    const wv = woundP();
+    $('wound').style.opacity = wv > 0 && P.alive ? (0.45 * wv * (0.72 + 0.28 * Math.sin(performance.now() * (0.006 + 0.007 * wv)))).toFixed(3) : 0;
+    const t = (lockT && lockT.alive) ? lockT : enemies.find(e => e.alive);
+    const tp = $('target');
+    if(t){
+      tp.hidden = false;
+      $('tName').textContent = t.name;
+      const r = P.str / t.str;
+      $('tSub').textContent = 'STR ' + t.str + (r >= 1.2 ? ' · you win clashes' : r > 0.85 ? ' · clashes are even' : ' · you lose clashes');
+      $('tHp').style.width = (100 * t.hp / t.maxHp) + '%';
+      $('tPost').style.width = (100 * t.posture / t.postureMax) + '%';
+    } else tp.hidden = true;
+    const ret = $('reticle');
+    if(lockT && lockT.alive && !BL){
+      const c = chestOf(lockT); _p.set(c.x, c.y, c.z).project(camera);
+      ret.hidden = _p.z > 1;
+      ret.style.left = ((_p.x + 1) / 2 * innerWidth) + 'px'; ret.style.top = ((1 - _p.y) / 2 * innerHeight) + 'px';
+    } else ret.hidden = true;
+    flashEl.style.opacity = flashA > 0.01 ? flashA : 0;
+    $('vig').style.opacity = performance.now() < slowStart + slowDur || BL ? 1 : 0;
+  }
+  // ---------- modes: the Trial (rooms) or the Arena (endless) ----------
+  let mode = 'arena', roomIdx = 0, roomState = 'fight', hardcore = false, deaths = 0, runFrames = 0, transT = 0, runOver = false;
+  const ROOMS = [
+    { name:'Gatehouse', foes:['knight'], theme:0 },
+    { name:'Barracks', foes:['duelist','knight'], theme:1 },
+    { name:'Armory', foes:['shield','spear'], theme:2 },
+    { name:'Courtyard', foes:['assassin','duelist'], theme:3 },
+    { name:'Gate Captain', foes:['captain'], theme:4, title:['GATE CAPTAIN', 'Holds the inner gate'] },
+    { name:'Cloister', foes:['brute','spear','duelist'], theme:1 },
+    { name:'Shrine', shrine:true, theme:5 },
+    { name:'The Warden', foes:['warden'], theme:6, title:['THE WARDEN', 'Keeper of the Trial'], boss:true }
+  ];
+  const THEMES = [
+    { bg:0x0b0a10, hemi:0x9a8fc4, torch:0xffa860 }, { bg:0x0d0b0a, hemi:0xb0a080, torch:0xffb070 },
+    { bg:0x090b10, hemi:0x8fa4c4, torch:0x9fc8ff }, { bg:0x0a0d0a, hemi:0x8fb08a, torch:0xd8ff9a },
+    { bg:0x100a0a, hemi:0xc49a8f, torch:0xff8a50 }, { bg:0x0c0b0e, hemi:0xd8d0ff, torch:0xffe9b0 },
+    { bg:0x120607, hemi:0xb06060, torch:0xff3a2a }
+  ];
+  function setTheme(i){
+    const t = THEMES[i];
+    scene.background.setHex(t.bg); scene.fog.color.setHex(t.bg); hemi.color.setHex(t.hemi);
+    for(const tch of torches){ tch.L.color.setHex(t.torch); tch.flame.material.color.setHex(t.torch); }
+  }
+  // exit gate: a glowing arch that appears when the room is clear
+  const gate = new THREE.Group();
+  (function(){
+    const stone = new THREE.MeshStandardMaterial({ color:0x2c2434, roughness:0.9 });
+    for(const sx of [-1.2, 1.2]){ const p = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3.2, 0.4), stone); p.position.set(sx, 1.6, 0); p.castShadow = true; gate.add(p); }
+    const lintel = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.4, 0.45), stone); lintel.position.y = 3.3; gate.add(lintel);
+    const portal = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 3.0), new THREE.MeshBasicMaterial({ color:0xffe9b0, transparent:true, opacity:0.35, blending:THREE.AdditiveBlending, side:THREE.DoubleSide, depthWrite:false }));
+    portal.position.y = 1.55; gate.add(portal); gate.userData.portal = portal;
+    const gl = new THREE.PointLight(0xffe9b0, 1.2, 8, 2); gl.position.set(0, 1.8, -0.6); gate.add(gl);
+    gate.position.set(0, 0, ARENA - 0.3); gate.rotation.y = Math.PI; gate.visible = false; scene.add(gate);
+  })();
+  const altar = new THREE.Group();
+  (function(){
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.75, 0.9, 16), new THREE.MeshStandardMaterial({ color:0x342a3e, roughness:0.8 }));
+    base.position.y = 0.45; base.castShadow = true; altar.add(base);
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12), new THREE.MeshBasicMaterial({ color:0xfff0c8 }));
+    orb.position.y = 1.3; altar.add(orb); altar.userData.orb = orb;
+    const ol = new THREE.PointLight(0xffe9b0, 1.6, 10, 2); ol.position.y = 1.4; altar.add(ol);
+    altar.visible = false; scene.add(altar);
+  })();
+  function clearField(){
+    endBladeLock();
+    for(const e of enemies) removeEnemy(e);
+    for(const d of debris) scene.remove(d.mesh);
+    debris.length = 0; enemies = []; lockT = null;
+  }
+  function enterRoom(i){
+    roomIdx = i; const R0 = ROOMS[i];
+    clearField(); setTheme(R0.theme);
+    P.x = 0; P.z = -8; P.vx = P.vz = P.kx = P.kz = 0; P.yaw = 0; cam.yaw = 0; P.skill = null;
+    gate.visible = false; altar.visible = !!R0.shrine;
+    $('roomLabel').textContent = R0.name + '  ' + (i + 1) + '/' + ROOMS.length;
+    if(R0.shrine) roomState = 'shrine';
+    else {
+      roomState = 'fight';
+      R0.foes.forEach((t, k) => { const e = spawnEnemy(t); if(e){ e.x = (k - (R0.foes.length - 1) / 2) * 2.4; e.z = 5; e.yaw = yawTo(e, P); e.cool = 70 + k * 30; } });
+    }
+    if(R0.title) showBanner(R0.title[0], R0.title[1]); else showBanner(R0.name.toUpperCase(), 'The Trial · room ' + (i + 1) + ' of ' + ROOMS.length);
+  }
+  function updateRun(){
+    if(mode !== 'trial' || !P.alive || runOver) return;
+    runFrames++;
+    const R0 = ROOMS[roomIdx];
+    if(gate.visible) gate.userData.portal.material.opacity = 0.28 + Math.sin(frameNo * 0.08) * 0.08;
+    if(altar.visible) altar.userData.orb.position.y = 1.3 + Math.sin(frameNo * 0.05) * 0.06;
+    if(roomState === 'fight' && !enemies.some(e => e.alive)){
+      if(R0.boss){ winRun(); return; }
+      roomState = 'clear'; gate.visible = true; sfx('learn');
+      const heal = P.maxHp * 0.15; P.hp = Math.min(P.maxHp, P.hp + heal);
+      floatText(P.x, 2.4, P.z, '+' + Math.round(heal) + ' HP', '#7fe38a', 1.1);
+      log(R0.name + ' cleared. The gate on the far side is open.', 'win');
+    }
+    if(roomState === 'shrine' && Math.hypot(P.x, P.z) < 2.3){
+      roomState = 'clear'; gate.visible = true; P.hp = P.maxHp; P.flasks = 3; P.posture = 0;
+      sfx('learn'); showBanner('SHRINE', 'health and flasks restored · press K to change skills');
+    }
+    if(roomState === 'clear' && !transT && Math.hypot(P.x, P.z - (ARENA - 0.6)) < 1.7){ transT = 50; $('fade').style.opacity = 1; }
+    if(transT){ transT--; if(transT === 22) enterRoom(roomIdx + 1); if(transT === 18) $('fade').style.opacity = 0; }
+  }
+  function startMode(m){
+    mode = m; hardcore = m === 'trial' && $('hardcore').checked; runOver = false;
+    begin();
+    if(m === 'trial'){ runFrames = 0; enterRoom(0); }
+    else { $('roomLabel').textContent = 'Arena'; setTheme(0); spawnTimer = 30; }
+  }
+  function onDeath(){
+    deaths++;
+    let html;
+    if(mode === 'trial' && hardcore){
+      Object.assign(P.stats, BASE); for(const k in P.xp) P.xp[k] = 0;
+      P.mastery = {}; P.unlocked = new Set(['rush','fangs']); P.loadout = { Q:'rush', E:'fangs' }; P.learnProg = {}; P.deflects = 0;
+      html = '<h2>Your legend ends</h2><p>Hardcore: everything you learned is gone. Press R to begin again from nothing.</p>';
+    } else if(mode === 'trial'){
+      const lines = [];
+      for(const k of ['str','spd','vit','def']){
+        // VIT is sturdier: it only loses 8% of what you gained, rounded down, so small gains are kept
+        const above = P.stats[k] - BASE[k], before = P.stats[k];
+        const lost = above <= 0 ? 0 : k === 'vit' ? Math.floor(above * 0.08) : Math.max(1, Math.round(above * 0.2));
+        P.stats[k] -= lost; P.xp[k] = 0;
+        lines.push('<span>' + STAT_INFO[k].label + '</span><span>' + before + (lost ? ' → <b class="lost">' + P.stats[k] + '</b>' : ' (kept)') + '</span>');
+      }
+      html = '<h2>You fell</h2><p>Cut down in the ' + ROOMS[roomIdx].name + '. The Trial resets. Your skills stay, a bit of your strength doesn\'t.</p><div class="lines">' + lines.join('') + '</div><p>Press R to start again at the Gatehouse.</p>';
+    } else html = '<h2>You fell</h2><p>Kills this run: ' + kills + '. Press R to go again.</p>';
+    setTimeout(() => { if(!P.alive){ $('deathCard').innerHTML = html; $('deathOverlay').hidden = false; } }, 1000);
+  }
+  function winRun(){
+    runOver = true; sfx('learn'); slowmo(900, 0.2);
+    const secs = Math.round(runFrames / 60), mm = Math.floor(secs / 60), ss = String(secs % 60).padStart(2, '0');
+    setTimeout(() => {
+      $('deathCard').innerHTML = '<h2>Trial complete</h2><p>The Warden falls. The real climb starts beyond this gate.</p>' +
+        '<div class="lines"><span>Time</span><span>' + mm + ':' + ss + '</span><span>Deaths</span><span>' + deaths + '</span>' +
+        '<span>STR / SPD</span><span>' + P.stats.str + ' / ' + P.stats.spd + '</span><span>VIT / DEF</span><span>' + P.stats.vit + ' / ' + P.stats.def + '</span>' +
+        '<span>Skills</span><span>' + P.unlocked.size + ' of ' + SKILL_ORDER.length + '</span>' + (hardcore ? '<span>Mode</span><span>Hardcore</span>' : '') + '</div><p>Press R to run it again.</p>';
+      $('deathOverlay').hidden = false;
+    }, 1600);
+  }
+  function handleR(){
+    $('deathOverlay').hidden = true;
+    if(mode === 'trial'){
+      runOver = false;
+      Object.assign(P, { alive:true, stunT:0, atkT:0, parryT:0, dodgeT:0, combo:0, armRecoil:0, skill:null, skillCd:{ Q:0, E:0 }, posture:0, flasks:3, drinkT:0, vy:0, y:0 });
+      P.hp = P.maxHp; deaths = runOver ? deaths : deaths; runFrames = 0;
+      enterRoom(0);
+    } else restart();
+  }
+
+  // ---------- stat panel ----------
+  const statRows = {};
+  for(const k of ['str','spd','vit','def']){
+    const row = document.createElement('div'); row.className = 'st3';
+    row.innerHTML = '<span class="k" style="color:' + STAT_INFO[k].color + '">' + STAT_INFO[k].label + '</span><span class="v">' + P.stats[k] + '</span><div class="track"><div class="fill" style="background:' + STAT_INFO[k].color + '"></div></div>';
+    $('stats3').appendChild(row);
+    statRows[k] = { row, v:row.querySelector('.v'), fill:row.querySelector('.fill') };
+  }
+  function popStat(k){ const r = statRows[k].row; r.classList.remove('pop'); void r.offsetWidth; r.classList.add('pop'); }
+
+  // ---------- skill loadout screen ----------
+  let paused = false;
+  function toggleLoadout(){
+    if(!started) return;
+    paused = !paused;
+    $('loadoutOverlay').hidden = !paused;
+    if(paused){ renderLoadout(); try{ document.exitPointerLock(); }catch(err){} }
+  }
+  function renderLoadout(){
+    const list = $('skList'); list.innerHTML = '';
+    for(const id of SKILL_ORDER){
+      const S = SKILLS[id], owned = P.unlocked.has(id), m = mast(id);
+      const card = document.createElement('div'); card.className = 'skc panel' + (owned ? '' : ' locked'); card.style.setProperty('--c', S.hex);
+      const top = document.createElement('div'); top.className = 'top';
+      const h = document.createElement('h3'); h.textContent = S.name;
+      const mm = document.createElement('span'); mm.className = 'm';
+      mm.textContent = owned ? ('Lv' + m.lv + (m.lv < 5 ? ' · ' + m.xp + '/' + MASTERY_NEED[m.lv] + ' to next' : ' · max')) : 'locked';
+      top.append(h, mm);
+      const p = document.createElement('p'); p.textContent = owned ? S.desc : 'Unlock: ' + S.how;
+      card.append(top, p);
+      if(owned){
+        const btns = document.createElement('div'); btns.className = 'btns';
+        for(const slot of ['Q','E']){
+          const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Equip ' + slot;
+          if(P.loadout[slot] === id) b.classList.add('on');
+          b.addEventListener('click', () => {
+            const other = slot === 'Q' ? 'E' : 'Q';
+            if(P.loadout[other] === id) P.loadout[other] = P.loadout[slot];
+            P.loadout[slot] = id; renderLoadout();
+          });
+          btns.append(b);
+        }
+        card.append(btns);
+      }
+      list.append(card);
+    }
+  }
+  $('closeLoadout').addEventListener('click', toggleLoadout);
+
+  const STEP = 1000 / 60;
+  let acc = 0, last = performance.now(), filterOn = false, heartNext = 0;
+  function frame(now){
+    const dt = Math.min(100, now - last); last = now;
+    if(paused) acc = 0; else acc += dt * timeScale(now);
+    while(acc >= STEP){ update(); acc -= STEP; }
+    const wv = woundP();
+    if(!paused && P.alive && wv > 0.3 && now >= heartNext){ heartNext = now + 950 - 420 * wv; sfx('heart'); }
+    for(const tch of torches){ const f = 1.4 + Math.sin(now * 0.011 + tch.seed) * 0.15 + Math.sin(now * 0.027 + tch.seed * 2) * 0.1; tch.L.intensity = f; tch.flame.scale.setScalar(0.8 + f * 0.15); }
+    updateCamera();
+    // impact frames: a couple of stark, high-contrast frames on the biggest hits
+    if(impactT > 0){ if(!filterOn){ canvas.style.filter = 'grayscale(1) contrast(2.3) brightness(1.25)'; filterOn = true; } impactT--; }
+    else if(filterOn){ canvas.style.filter = ''; filterOn = false; }
+    renderer.render(scene, camera);
+    updateFloats();
+    updateHud();
+    requestAnimationFrame(frame);
+  }
+
+  function restart(){
+    endBladeLock();
+    for(const e of enemies) removeEnemy(e);
+    for(const d of debris) scene.remove(d.mesh);
+    debris.length = 0;
+    enemies = []; lockT = null; kills = 0; spawnTimer = 40; nextType = 'knight'; exStreak = 0; waveN = 0;
+    Object.assign(P, { x:0, z:-5, y:0, vy:0, vx:0, vz:0, kx:0, kz:0, yaw:0, posture:0, alive:true, stunT:0, atkT:0, parryT:0, dodgeT:0, combo:0, armRecoil:0, skill:null, skillCd:{ Q:0, E:0 }, flasks:3, drinkT:0 });
+    P.hp = P.maxHp;
+    cam.yaw = 0;
+    $('deathOverlay').hidden = true;
+  }
+  function begin(){
+    if(started) return;
+    started = true; initAudio();
+    $('startOverlay').hidden = true;
+    try{ const r = canvas.requestPointerLock(); if(r && r.catch) r.catch(() => { $('mouseHint').hidden = false; }); }catch(err){}
+    spawnTimer = 30;
+    log('Swing into their swing to clash. Lock-on is automatic, Q toggles it.', 'tip', 6500);
+  }
+  $('startBtn').addEventListener('click', () => startMode('trial'));
+  $('arenaBtn').addEventListener('click', () => startMode('arena'));
+
+  if(/[?&]test\b/.test(location.search)){
+    window.__g = { P, keys, press, mouse, get enemies(){ return enemies; }, tick(){ update(); }, begin, restart, spawnEnemy,
+      get lockT(){ return lockT; }, set lockT(v){ lockT = v; }, cam, get BL(){ return BL; }, get exStreak(){ return exStreak; },
+      render(){ updateCamera(); renderer.render(scene, camera); updateHud(); }, get kills(){ return kills; },
+      startMode, handleR, get roomIdx(){ return roomIdx; }, get roomState(){ return roomState; }, get runOver(){ return runOver; }, get deaths(){ return deaths; } };
+  }
+
+  updateVisuals();
+  requestAnimationFrame(frame);
+})();
+</script>
