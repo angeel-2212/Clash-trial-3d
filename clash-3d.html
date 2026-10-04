@@ -705,6 +705,10 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
   });
   addEventListener('keyup', e => { keys[e.code] = false; });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    cam.dist = clamp(cam.dist + Math.sign(e.deltaY) * 0.35, 2.2, 7.5);
+  }, { passive:false });
   addEventListener('blur', () => { for(const k in keys) keys[k] = false; mouse.l = mouse.r = false; });
   canvas.addEventListener('mousedown', e => {
     initAudio();
@@ -721,7 +725,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 
   // ---------- player ----------
   const P = {
-    x:0, z:-5, y:0, vy:0, vx:0, vz:0, kx:0, kz:0, yaw:0, radius:0.35, onGround:true,
+    x:0, z:-5, px:0, pz:-5, y:0, vy:0, vx:0, vz:0, kx:0, kz:0, yaw:0, radius:0.35, onGround:true,
     hp:100, maxHp:100, str:13, def:10, posture:0, postureT:0, alive:true,
     combo:0, comboT:0, atkT:0, atkTotal:1, atk:null, atkHitFrame:0, atkHit:true, lock:0,
     parryT:0, parryCd:0, blocking:false, dodgeT:0, dodgeCd:0, ddx:0, ddz:0, invuln:false, stunT:0,
@@ -733,28 +737,28 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   // sword skills: glowing pre-motion, a scripted motion you can't cancel, then a post-motion freeze where you're open.
   // press the other skill in the last frames of the motion to chain (skill connect) and skip the freeze.
   const SKILLS = {
-    rush:   { name:'Sonic Rush', color:0x7dffb0, hex:'#7dffb0', cd:240, pre:9, motion:12, post:30, connect:8, dash:0.21, contact:true, dmg:22, posture:32, crush:true,
+    rush:   { name:'Sonic Rush', color:0x7dffb0, hex:'#7dffb0', cd:240, pre:9, motion:12, post:20, connect:8, dash:0.21, contact:true, dmg:22, posture:32, crush:true,
               prePose:{ lean:-0.12, crouch:0.52, armUp:0.15, armYaw:1.35, ext:0.3, tilt:0.1, stride:-0.35 }, from:{ armUp:0.15, armYaw:1.35, tilt:0.1 }, to:{ armUp:0.1, armYaw:-1.35, tilt:0.05 }, lean:0.62, crouch:0.42,
               desc:'Dash through them with one guard-breaking cut.', how:'starter' },
-    fangs:  { name:'Four Fangs', color:0x7db8ff, hex:'#7db8ff', cd:360, pre:10, motion:26, post:20, connect:8, hitEvery:6, range:2.3, dmg:7, posture:9, step:0.032,
+    fangs:  { name:'Four Fangs', color:0x7db8ff, hex:'#7db8ff', cd:360, pre:10, motion:26, post:14, connect:8, hitEvery:6, range:2.3, dmg:7, posture:9, step:0.032,
               prePose:{ lean:-0.08, crouch:0.4, armUp:0.6, armYaw:0.9, ext:0.35, tilt:0.6, stride:-0.2 }, lean:0.4, crouch:0.3,
               desc:'Four fast alternating cuts.', how:'starter' },
-    spin:   { name:'Whirl Arc', color:0xc78dff, hex:'#c78dff', cd:300, pre:12, motion:20, post:34, connect:8, hitEvery:10, range:2.4, cone:Math.PI, dmg:12, posture:14, step:0, spin:true,
+    spin:   { name:'Whirl Arc', color:0xc78dff, hex:'#c78dff', cd:300, pre:12, motion:20, post:22, connect:8, hitEvery:10, range:2.4, cone:Math.PI, dmg:12, posture:14, step:0, spin:true,
               prePose:{ lean:-0.1, crouch:0.55, armUp:0.1, armYaw:1.5, ext:0.6, tilt:0.05, stride:0.2 }, lean:0.3, crouch:0.45,
               desc:'Spin with the blade out, hitting everything around you twice.', how:'Four Fangs mastery 3' },
-    pierce: { name:'Piercing Star', color:0xfff07d, hex:'#fff07d', cd:300, pre:15, motion:8, post:38, connect:7, dash:0.32, contact:true, dmg:30, posture:30, thrust:true,
+    pierce: { name:'Piercing Star', color:0xfff07d, hex:'#fff07d', cd:300, pre:15, motion:8, post:26, connect:7, dash:0.32, contact:true, dmg:30, posture:30, thrust:true,
               prePose:{ lean:-0.25, crouch:0.5, armUp:0.12, armYaw:0.3, ext:0, tilt:0, stride:-0.5 }, from:{ armUp:0.12, armYaw:0, tilt:0 }, to:{ armUp:0.12, armYaw:0, tilt:0 }, lean:0.7, crouch:0.45,
               desc:'A long lunging thrust. Huge damage, long freeze.', how:'Sonic Rush mastery 3' },
-    rising: { name:'Sky Splitter', color:0x7dffff, hex:'#7dffff', cd:280, pre:10, motion:10, post:30, connect:8, hitAt:4, range:2.2, dmg:16, posture:24, rise:true,
+    rising: { name:'Sky Splitter', color:0x7dffff, hex:'#7dffff', cd:280, pre:10, motion:10, post:20, connect:8, hitAt:4, range:2.2, dmg:16, posture:24, rise:true,
               prePose:{ lean:0.1, crouch:0.6, armUp:-0.8, armYaw:0.5, ext:0.4, tilt:-0.1, stride:0.3 }, from:{ armUp:-0.85, armYaw:0.5, tilt:-0.1 }, to:{ armUp:2.0, armYaw:-0.2, tilt:0.6 }, lean:0.15, crouch:0.3,
               desc:'Rising cut that throws them off balance. Your falling cut punishes it.', how:'5 kills' },
-    riposte:{ name:'Riposte', color:0xffffff, hex:'#ffffff', cd:120, pre:3, motion:8, post:18, connect:8, counterOnly:true, hitAt:3, range:2.4, dmg:26, posture:40, crush:true,
+    riposte:{ name:'Riposte', color:0xffffff, hex:'#ffffff', cd:120, pre:3, motion:8, post:14, connect:8, counterOnly:true, hitAt:3, range:2.4, dmg:26, posture:40, crush:true,
               prePose:{ lean:0.1, crouch:0.4, armUp:1.2, armYaw:1.2, ext:0.5, tilt:0.3, stride:0.3 }, from:{ armUp:1.2, armYaw:1.2, tilt:0.3 }, to:{ armUp:-0.2, armYaw:-1.2, tilt:0.1 }, lean:0.55, crouch:0.4,
               desc:'Only right after a perfect deflect or a won clash: an instant, brutal counter.', how:'12 deflects' },
-    rend:   { name:'Crimson Rend', color:0xff4a3a, hex:'#ff4a3a', cd:360, pre:12, motion:24, post:36, connect:8, hitEvery:8, range:2.3, dmg:11, posture:14, step:0.03, lastHeavy:true,
+    rend:   { name:'Crimson Rend', color:0xff4a3a, hex:'#ff4a3a', cd:360, pre:12, motion:24, post:24, connect:8, hitEvery:8, range:2.3, dmg:11, posture:14, step:0.03, lastHeavy:true,
               prePose:{ lean:-0.1, crouch:0.45, armUp:0.7, armYaw:1.1, ext:0.4, tilt:0.5, stride:-0.2 }, lean:0.45, crouch:0.35,
               desc:'Learned from the Knight: three cuts, the last one heavy.', how:'deflect every hit of the Knight\'s red skill, twice', learn:'knight' },
-    flurry: { name:'Gilded Flurry', color:0xffc84a, hex:'#ffc84a', cd:360, pre:10, motion:25, post:34, connect:8, hitEvery:5, range:2.0, dmg:6, posture:7, step:0.03,
+    flurry: { name:'Gilded Flurry', color:0xffc84a, hex:'#ffc84a', cd:360, pre:10, motion:25, post:22, connect:8, hitEvery:5, range:2.0, dmg:6, posture:7, step:0.03,
               prePose:{ lean:-0.05, crouch:0.38, armUp:0.5, armYaw:0.8, ext:0.35, tilt:0.5, stride:-0.15 }, lean:0.35, crouch:0.28,
               desc:'Learned from the Duelist: five lightning cuts.', how:'deflect every hit of the Duelist\'s gold skill, twice', learn:'duelist' }
   };
@@ -2122,26 +2126,26 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
   }
 
-  function updateCamera(){
+  function updateCamera(dt = 16.6667, vx = P.x, vz = P.z){
     const lk = lockT && lockT.alive;
     if(lk){
-      cam.yaw += angDiff(cam.yaw, yawTo(P, lockT)) * 0.12;
-      cam.pitch += (0.24 - cam.pitch) * 0.08;
+      const t = dt / 16.6667;
+      cam.yaw += angDiff(cam.yaw, Math.atan2(lockT.x - vx, lockT.z - vz)) * (1 - Math.pow(1 - 0.12, t));
     } else {
       cam.yaw -= mouse.dx * 0.0028;
-      cam.pitch = clamp(cam.pitch + mouse.dy * 0.002, -0.15, 0.95);
     }
+    cam.pitch = clamp(cam.pitch + mouse.dy * 0.002, -0.15, 0.95);
     mouse.dx = 0; mouse.dy = 0;
     const fx = Math.sin(cam.yaw), fz = Math.cos(cam.yaw), rxx = -Math.cos(cam.yaw), rzz = Math.sin(cam.yaw);
     const dd = cam.dist * (BL ? 0.78 : 1), cd = dd * Math.cos(cam.pitch);
-    const sideOff = (lk ? 0.85 : 0.45) + camSide * 0.9;
+    const sideOff = ((lk ? 0.85 : 0.45) + camSide * 0.9) * (cam.dist / 4.4);
     const s = shake;
     camera.position.set(
-      P.x - fx * cd + rxx * sideOff + camKick.x + rand(-s, s),
+      vx - fx * cd + rxx * sideOff + camKick.x + rand(-s, s),
       1.45 + Math.sin(cam.pitch) * dd + camKick.y + rand(-s, s) * 0.6,
-      P.z - fz * cd + rzz * sideOff + camKick.z + rand(-s, s));
-    if(lk) camTarget.lerp(_v1.set(P.x + (lockT.x - P.x) * 0.55 + rxx * 0.3, 1.15, P.z + (lockT.z - P.z) * 0.55 + rzz * 0.3), 0.25);
-    else camTarget.lerp(_v1.set(P.x + fx * 1.2 + rxx * 0.3, 1.3, P.z + fz * 1.2 + rzz * 0.3), 0.3);
+      vz - fz * cd + rzz * sideOff + camKick.z + rand(-s, s));
+    const targetRate = 1 - Math.pow(1 - (lk ? 0.25 : 0.3), dt / 16.6667);
+    camTarget.lerp(_v1.set(vx + fx * 1.2 + rxx * 0.3, lk ? 1.15 : 1.3, vz + fz * 1.2 + rzz * 0.3), targetRate);
     camera.lookAt(camTarget);
     const fov = BASE_FOV - fovPunch;
     if(Math.abs(camera.fov - fov) > 0.01){ camera.fov = fov; camera.updateProjectionMatrix(); }
@@ -2150,6 +2154,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   // ---------- main loop ----------
   function update(){
     frameNo++;
+    P.px = P.x; P.pz = P.z;
     shake *= 0.85; if(shake < 0.002) shake = 0;
     camKick.x *= 0.8; camKick.y *= 0.8; camKick.z *= 0.8;
     fovPunch *= 0.9; flashA *= 0.84;
@@ -2257,7 +2262,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function enterRoom(i){
     roomIdx = i; const R0 = ROOMS[i];
     clearField(); setTheme(R0.theme);
-    P.x = 0; P.z = -8; P.vx = P.vz = P.kx = P.kz = 0; P.yaw = 0; cam.yaw = 0; P.skill = null;
+    P.x = 0; P.z = -8; P.px = P.x; P.pz = P.z; P.vx = P.vz = P.kx = P.kz = 0; P.yaw = 0; cam.yaw = 0; P.skill = null;
     gate.visible = false; altar.visible = !!R0.shrine;
     $('roomLabel').textContent = R0.name + '  ' + (i + 1) + '/' + ROOMS.length;
     if(R0.shrine) roomState = 'shrine';
@@ -2694,7 +2699,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     scene.background.setHex(AREA.bg); scene.fog.color.setHex(AREA.bg); scene.fog.near = AREA.fog[0]; scene.fog.far = AREA.fog[1];
     hemi.color.setHex(AREA.hemi[0]); hemi.groundColor.setHex(AREA.hemi[1]); hemi.intensity = AREA.hemi[2]; moon.intensity = AREA.moon;
     const s = at || AREA.spawn;
-    Object.assign(P, { x:s.x, z:s.z, yaw:s.yaw, vx:0, vz:0, kx:0, kz:0, skill:null }); cam.yaw = s.yaw;
+    Object.assign(P, { x:s.x, z:s.z, px:s.x, pz:s.z, yaw:s.yaw, vx:0, vz:0, kx:0, kz:0, skill:null }); cam.yaw = s.yaw;
     $('roomLabel').textContent = AREA.name;
     showBanner(AREA.name.toUpperCase(), AREA.sub);
     if(id === 'wilds') rivalMet = false;
@@ -3141,7 +3146,10 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const wv = woundP();
     if(!paused && P.alive && wv > 0.3 && now >= heartNext){ heartNext = now + 950 - 420 * wv; sfx('heart'); }
     for(const tch of torches){ const f = 1.4 + Math.sin(now * 0.011 + tch.seed) * 0.15 + Math.sin(now * 0.027 + tch.seed * 2) * 0.1; tch.L.intensity = f; tch.flame.scale.setScalar(0.8 + f * 0.15); }
-    updateCamera();
+    const alpha = clamp(acc / STEP, 0, 1);
+    const vx = P.px + (P.x - P.px) * alpha, vz = P.pz + (P.z - P.pz) * alpha;
+    PR.root.position.x = vx; PR.root.position.z = vz;
+    updateCamera(dt, vx, vz);
     if(mode === 'world') worldFrame(now);
     // impact frames: a couple of stark, high-contrast frames on the biggest hits
     if(impactT > 0){ if(!filterOn){ canvas.style.filter = 'grayscale(1) contrast(2.3) brightness(1.25)'; filterOn = true; } impactT--; }
@@ -3158,7 +3166,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     for(const d of debris) scene.remove(d.mesh);
     debris.length = 0;
     enemies = []; lockT = null; kills = 0; spawnTimer = 40; nextType = 'knight'; exStreak = 0; waveN = 0;
-    Object.assign(P, { x:0, z:-5, y:0, vy:0, vx:0, vz:0, kx:0, kz:0, yaw:0, posture:0, alive:true, stunT:0, atkT:0, parryT:0, dodgeT:0, combo:0, armRecoil:0, skill:null, skillCd:{ Q:0, E:0 }, flasks:3, drinkT:0 });
+    Object.assign(P, { x:0, z:-5, px:0, pz:-5, y:0, vy:0, vx:0, vz:0, kx:0, kz:0, yaw:0, posture:0, alive:true, stunT:0, atkT:0, parryT:0, dodgeT:0, combo:0, armRecoil:0, skill:null, skillCd:{ Q:0, E:0 }, flasks:3, drinkT:0 });
     P.hp = P.maxHp;
     cam.yaw = 0;
     $('deathOverlay').hidden = true;
