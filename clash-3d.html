@@ -116,6 +116,48 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 .pbar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
 .pbar i{display:block;height:100%;background:var(--guard)}
 .goldline{font-family:var(--display);letter-spacing:.12em;color:var(--guard);text-align:center;font-size:14px}
+.invwin{width:min(1000px,100%);height:min(640px,calc(100vh - 32px));display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:12px;background:rgba(14,12,20,0.94)}
+.invbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--line)}
+.invtabs{display:flex;gap:4px;flex-wrap:wrap}
+.invtabs button{appearance:none;font:inherit;font-size:13px;font-weight:600;color:var(--muted);background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:7px;padding:7px 16px;cursor:pointer}
+.invtabs button[aria-selected=true]{color:var(--fg);background:rgba(255,209,102,0.16);border-color:rgba(255,209,102,0.5)}
+.invtabs button:focus-visible,.iconbtn:focus-visible,.tile:focus-visible,.filters button:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.invicons{display:flex;gap:6px}
+.iconbtn{appearance:none;width:32px;height:32px;border-radius:7px;border:1px solid var(--line);background:rgba(255,255,255,0.06);color:var(--fg);font-size:16px;cursor:pointer;line-height:1}
+.iconbtn.closex{background:#a8322e;border-color:#c8423e;color:#fff}
+.invbody{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:10px}
+.invmain{display:grid;grid-template-columns:240px minmax(0,1fr) 250px;gap:12px;flex:1;min-height:0}
+.invleft{display:flex;flex-direction:column;gap:8px;min-height:0}
+.pvwrap{position:relative;border-radius:10px;background:radial-gradient(ellipse at 50% 40%, rgba(120,110,150,0.35), rgba(10,8,14,0.9) 70%);border:1px solid var(--line);overflow:hidden}
+.pvwrap canvas{display:block;width:100%;height:auto;cursor:grab;touch-action:none}
+.pvwrap .pvhint{position:absolute;left:0;right:0;bottom:6px;text-align:center;font-size:11px;color:var(--muted);pointer-events:none}
+.eqrow{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.eqslot{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.eqslot .tile{width:100%;height:auto;aspect-ratio:1}
+.purse{font-family:var(--display);font-size:13px;letter-spacing:.06em;color:var(--guard);display:flex;justify-content:space-between}
+.invmid{display:flex;flex-direction:column;gap:8px;min-height:0}
+.tilegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:7px;align-content:start;overflow:auto;flex:1;padding:2px}
+.tile{appearance:none;position:relative;aspect-ratio:1;border-radius:9px;border:2px solid rgba(255,255,255,0.1);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(155deg,var(--rc) 0%,color-mix(in srgb,var(--rc) 45%,#0a0810) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,0.15)}
+.tile img{width:76%;height:76%;object-fit:contain;filter:drop-shadow(0 2px 2px rgba(0,0,0,0.6));pointer-events:none}
+.tile .badge{position:absolute;right:4px;bottom:3px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;font-variant-numeric:tabular-nums}
+.tile .eqtag{position:absolute;left:4px;top:3px;font-size:9.5px;font-weight:700;color:#14111a;background:var(--guard);border-radius:4px;padding:0 4px}
+.tile.eq{border-color:rgba(255,209,102,0.9)}
+.tile.sel{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,0.35),inset 0 1px 0 rgba(255,255,255,0.15)}
+.tile.empty{background:rgba(255,255,255,0.04);border-style:dashed;cursor:default}
+.filters{display:flex;gap:5px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px}
+.filters button{appearance:none;font:inherit;font-size:12px;font-weight:600;color:var(--muted);background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:6px;padding:5px 11px;cursor:pointer}
+.filters button[aria-pressed=true]{color:#14111a;background:var(--guard);border-color:transparent}
+.idetail{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid var(--line);overflow:auto;min-height:0}
+.idetail .big{width:84px;height:84px;align-self:center}
+.idetail h3{margin:0;font-family:var(--display);font-size:16px;letter-spacing:.04em;text-align:center}
+.idetail .rar{font-size:11px;letter-spacing:.1em;text-transform:uppercase;text-align:center}
+.idetail p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.45}
+.idetail .stats{font-size:12px;color:var(--fg);line-height:1.6}
+.idetail .acts{display:flex;flex-direction:column;gap:6px;margin-top:auto}
+.idetail .acts button{appearance:none;font:inherit;font-size:13px;font-weight:600;color:var(--fg);background:rgba(255,255,255,0.08);border:1px solid var(--line);border-radius:7px;padding:8px 10px;cursor:pointer}
+.idetail .acts button.main{background:var(--guard);color:#14111a;border-color:transparent}
+.idetail .acts button:disabled{opacity:.4;cursor:default}
+@media (max-width:860px){ .invmain{grid-template-columns:minmax(0,1fr);flex:none} .tilegrid,.idetail{flex:none;overflow:visible} .invleft{display:grid;grid-template-columns:120px minmax(0,1fr);grid-template-rows:auto 1fr;gap:8px 10px;align-items:start} .pvwrap{grid-row:1 / span 2} .eqrow{grid-template-columns:repeat(3,1fr)} .purse{flex-direction:column;gap:2px} .tilegrid{grid-template-columns:repeat(auto-fill,minmax(58px,1fr))} .invtabs button{padding:6px 10px} }
 .tabs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 .tabs button{appearance:none;font:inherit;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:6px;padding:6px 14px;cursor:pointer}
 .tabs button[aria-selected=true]{color:#14111a;background:var(--guard)}
@@ -247,8 +289,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 <div class="wound" id="wound"></div>
 <div class="banner" id="banner"><b id="bannerMain">NEW SKILL</b><span id="bannerSub">press K to equip</span></div>
 <div class="overlay" id="loadoutOverlay" hidden>
-  <div class="loadout panel">
+  <div class="loadout panel" id="loadoutPanel">
     <h2>Loadout</h2>
+    <div id="loadoutContent" style="display:flex;flex-direction:column;gap:14px">
     <div class="sect">Combat deck</div>
     <div class="sub">Choose which move sits at each point of your string. Click-click-click runs the top row; pausing after a hit that landed takes a pause slot. Elites and bosses teach you new moves.</div>
     <div class="deck" id="deckList"></div>
@@ -263,6 +306,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     <div class="sect">Talents</div>
     <div class="sub">You don't pick these. You earn them by how you fight.</div>
     <div class="sk" id="talentList"></div>
+    </div>
     <button class="close" id="closeLoadout" type="button">Back to the fight (K)</button>
   </div>
 </div>
@@ -291,11 +335,15 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 <div class="ihint panel" id="interactHint" hidden></div>
 <div class="qtrack panel" id="qtrack" hidden></div>
 <div class="overlay" id="invOverlay" hidden>
-  <div class="loadout panel">
-    <h2 id="invTitle">Inventory</h2>
-    <div class="tabs" id="invTabs" role="tablist"></div>
-    <div id="invBody" style="display:flex;flex-direction:column;gap:10px"></div>
-    <button class="close" id="closeInv" type="button">Close</button>
+  <div class="invwin panel">
+    <div class="invbar">
+      <div class="invtabs" id="invTabs" role="tablist"></div>
+      <div class="invicons">
+        <button class="iconbtn" id="invSettings" type="button" aria-label="Settings" title="Settings">&#9881;</button>
+        <button class="iconbtn closex" id="closeInv" type="button" aria-label="Close" title="Close">&#10005;</button>
+      </div>
+    </div>
+    <div class="invbody" id="invBody"></div>
   </div>
 </div>
 <div class="overlay" id="pauseOverlay" hidden>
@@ -4449,8 +4497,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
     card.append(btns); grid.append(card);
   }
-  function applyGear(){
-    const g = gearW(), R = PR, s = R.s, len = g.len, k = len / R.L0;
+  function applyGear(){ applyGearTo(PR); if(pv) applyGearTo(pv.R); }
+  function applyGearTo(R){
+    const g = gearW(), s = R.s, len = g.len, k = len / R.L0;
     R.bladeM.scale.set(g.width, 1, k); R.bladeM.position.z = len / 2 + 0.06 * s;
     R.tipM.scale.set(g.width, 1, 0.3); R.tipM.position.z = len + 0.14 * s;
     R.fullerM.scale.z = k; R.fullerM.position.z = len * 0.42;
@@ -5435,8 +5484,10 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 
   // ---------- skill loadout screen ----------
   let paused = false;
+  function restoreLoadoutContent(){ const c = $('loadoutContent'); if(c.parentNode !== $('loadoutPanel')) $('loadoutPanel').insertBefore(c, $('closeLoadout')); }
   function toggleLoadout(){
     if(!started) return;
+    restoreLoadoutContent();
     paused = !paused;
     $('loadoutOverlay').hidden = !paused;
     if(paused){ renderLoadout(); try{ document.exitPointerLock(); }catch(err){} }
@@ -5626,7 +5677,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   refreshKeyLabels();
 
   // ---------- screens: inventory, pause menu, big map, save slots ----------
-  let screen = null, screenWasPaused = false, invTab = 'gear';
+  let screen = null, screenWasPaused = false, invTab = 'inv';
   const SCREEN_EL = { inv:'invOverlay', pause:'pauseOverlay', map:'mapOverlay', slots:'slotOverlay' };
   function openScreen(name){
     if(settingsOpen || menuOpen) return;
@@ -5640,6 +5691,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   }
   function closeScreen(silent){
     if(!screen) return;
+    restoreLoadoutContent();
     $(SCREEN_EL[screen]).hidden = true; paused = screenWasPaused; screen = null;
     if(!silent){ sfx('ui'); saveGame(); }
   }
@@ -5659,70 +5711,199 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     for(const l of lines || []) if(l) c.append(el('p', '', l));
     return c;
   }
-  // ----- inventory -----
-  const INV_TABS = [['gear', 'Gear'], ['pouch', 'Pouch'], ['char', 'Character'], ['best', 'Bestiary'], ['quests', 'Quests']];
+  // ----- inventory: a Swordburst-style window with a character preview and a grid of item tiles -----
+  const INV_TABS = [['inv', 'Inventory'], ['skills', 'Skills'], ['char', 'Character'], ['best', 'Bestiary'], ['quests', 'Quests']];
+  const RARITY = { common:['Common', '#55555f'], uncommon:['Uncommon', '#2f7d3e'], rare:['Rare', '#2c5fa8'], epic:['Epic', '#7b3fae'], legendary:['Legendary', '#b0561c'] };
+  const WEAPON_RARITY = { arming:'common', sabre:'uncommon', longsword:'uncommon', greatblade:'rare', odachi:'rare', fang:'epic', masterwork:'epic', cleaver:'legendary', rimebrand:'legendary', emberaxe:'legendary', abyssal:'legendary' };
+  const ARMOR_RARITY = { coat:'common', chain:'uncommon', wraps:'rare', lamellar:'rare', plate:'rare', hide:'epic' };
+  const INV_FILTERS = [['all', 'All'], ['1h', '1H Sword'], ['2h', '2H / Axe'], ['armor', 'Armor'], ['trinket', 'Trinkets'], ['items', 'Items'], ['mats', 'Materials']];
+  let invFilter = 'all', invSel = null;
+  // everything you own, as tiles
+  function invItems(){
+    const out = [];
+    for(const id in WEAPONS) if(P.owned.has(id)){
+      const g = WEAPONS[id], lv = P.upg[id] || 0;
+      out.push({ kind:'w', id, name:g.name + (lv ? ' +' + lv : ''), cat:g.oneHand ? '1h' : '2h', rarity:WEAPON_RARITY[id] || 'rare', badge:lv ? '+' + lv : '', eq:P.gear.weapon === id ? 'E' : P.gear.offhand === id ? 'OH' : '' });
+    }
+    for(const id in ARMORS) if(P.owned.has(id)) out.push({ kind:'a', id, name:ARMORS[id].name, cat:'armor', rarity:ARMOR_RARITY[id] || 'rare', badge:'', eq:P.gear.armor === id ? 'E' : '' });
+    for(const id of P.trinketsOwned){
+      const parts = fuseParts(id), slot = P.trinkets.indexOf(id);
+      out.push({ kind:'t', id, name:trinketInfo(id).name, cat:'trinket', rarity:parts ? 'legendary' : TRINKETS[id] && TRINKETS[id].boss ? 'epic' : 'rare', badge:'', eq:slot >= 0 ? 'T' + (slot + 1) : '' });
+    }
+    for(const id of BELT){ const n = P.inv.items[id] || 0; if(n) out.push({ kind:'i', id, name:ITEMS[id].name, cat:'items', rarity:id === 'knife' ? 'common' : 'uncommon', badge:'×' + n, eq:ITEMS[id].dur && P.buffs[id] > 0 ? 'ON' : '' }); }
+    if(P.shards) out.push({ kind:'s', id:'shard', name:'Flask Shard', cat:'items', rarity:'rare', badge:P.shards + '/3', eq:'' });
+    for(const id in MATS){ const n = P.inv.mats[id] || 0; if(n) out.push({ kind:'m', id, name:MATS[id].name, cat:'mats', rarity:id === 'iron' ? 'common' : id === 'rime' ? 'uncommon' : 'rare', badge:'×' + n, eq:'' }); }
+    return out;
+  }
+  // item icons, painted once per item and cached
+  const iconCache = {};
+  function itemIcon(kind, id){
+    const key = kind + ':' + id; if(iconCache[key]) return iconCache[key];
+    const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d');
+    const steel = (x0, y0, x1, y1) => { const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, '#f4f8ff'); gr.addColorStop(0.5, '#b8c4d4'); gr.addColorStop(1, '#7a8698'); return gr; };
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    if(kind === 'w'){
+      const W2 = WEAPONS[id], two = !W2.oneHand, wd = 5 + W2.width * (two ? 4 : 3), L = 52 + (W2.len - 0.9) * 40;
+      g.translate(48, 48); g.rotate(-Math.PI / 4);
+      g.fillStyle = '#5a3a22'; g.fillRect(-3, 18, 6, two ? 22 : 16);               // grip
+      g.fillStyle = '#d8b050'; g.beginPath(); g.arc(0, two ? 42 : 36, 4.5, 0, TAU); g.fill(); // pommel
+      if(W2.axe){
+        g.fillStyle = '#4a3020'; g.fillRect(-3, -38, 6, 58);
+        g.fillStyle = steel(-24, -40, 6, -10); g.beginPath(); g.moveTo(2, -36); g.quadraticCurveTo(30, -34, 26, -14); g.quadraticCurveTo(14, -20, 2, -16); g.closePath(); g.fill();
+        g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 1.5; g.stroke();
+      } else {
+        g.fillStyle = steel(-wd, 0, wd, 0); g.beginPath(); g.moveTo(-wd / 2, 14); g.lineTo(-wd / 2, 14 - L + 8); g.lineTo(0, 14 - L); g.lineTo(wd / 2, 14 - L + 8); g.lineTo(wd / 2, 14); g.closePath(); g.fill();
+        g.strokeStyle = 'rgba(0,0,0,0.35)'; g.lineWidth = 1.2; g.stroke();
+        g.strokeStyle = 'rgba(80,90,110,0.6)'; g.beginPath(); g.moveTo(0, 12); g.lineTo(0, 22 - L); g.stroke();       // fuller
+      }
+      g.fillStyle = '#d8b050'; g.fillRect(-14 - (two ? 4 : 0), 13, 28 + (two ? 8 : 0), 6);                              // guard
+    } else if(kind === 'a'){
+      const tint = '#' + new THREE.Color(ARMORS[id].tint).getHexString();
+      const gr = g.createLinearGradient(20, 16, 76, 84); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.25, tint); gr.addColorStop(1, '#2a2630'); g.fillStyle = gr;
+      g.beginPath(); g.moveTo(30, 18); g.lineTo(40, 24); g.lineTo(56, 24); g.lineTo(66, 18); g.lineTo(82, 30); g.lineTo(74, 46); g.lineTo(68, 42); g.lineTo(68, 80); g.lineTo(28, 80); g.lineTo(28, 42); g.lineTo(22, 46); g.lineTo(14, 30); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(0,0,0,0.45)'; g.lineWidth = 2; g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.moveTo(48, 28); g.lineTo(48, 76); g.stroke();
+      g.fillStyle = '#d8b050'; g.fillRect(28, 60, 40, 5);
+    } else if(kind === 't'){
+      const parts = fuseParts(id), hue = [...(parts ? parts.join('') : id)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 360;
+      g.strokeStyle = '#d8b050'; g.lineWidth = 3; g.beginPath(); g.arc(48, 30, 22, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+      const gem = (cx, cy, r, h) => { const gr = g.createRadialGradient(cx - r / 3, cy - r / 3, 1, cx, cy, r); gr.addColorStop(0, 'hsl(' + h + ',90%,85%)'); gr.addColorStop(0.5, 'hsl(' + h + ',75%,55%)'); gr.addColorStop(1, 'hsl(' + h + ',70%,25%)'); g.fillStyle = gr; g.beginPath(); for(let i = 0; i < 6; i++){ const a = i / 6 * TAU - Math.PI / 2; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } g.closePath(); g.fill(); g.strokeStyle = '#d8b050'; g.lineWidth = 3; g.stroke(); };
+      if(parts){ gem(36, 56, 15, hue); gem(60, 56, 15, (hue + 140) % 360); } else gem(48, 56, 20, hue);
+    } else if(kind === 'i' && id === 'knife'){
+      g.translate(48, 48); g.rotate(-Math.PI / 4);
+      g.fillStyle = steel(-6, 0, 6, 0); g.beginPath(); g.moveTo(-6, 6); g.lineTo(0, -34); g.lineTo(6, 6); g.closePath(); g.fill();
+      g.fillStyle = '#d8b050'; g.fillRect(-11, 6, 22, 4); g.fillStyle = '#3a2a1e'; g.fillRect(-3, 10, 6, 18);
+    } else if(kind === 'i'){
+      const col = ITEMS[id].hex;
+      g.fillStyle = 'rgba(220,230,255,0.25)'; g.strokeStyle = 'rgba(230,240,255,0.8)'; g.lineWidth = 2.5;
+      g.beginPath(); g.moveTo(40, 20); g.lineTo(56, 20); g.lineTo(56, 34); g.quadraticCurveTo(76, 44, 72, 66); g.quadraticCurveTo(68, 84, 48, 84); g.quadraticCurveTo(28, 84, 24, 66); g.quadraticCurveTo(20, 44, 40, 34); g.closePath(); g.fill(); g.stroke();
+      g.fillStyle = col; g.beginPath(); g.moveTo(25, 58); g.quadraticCurveTo(48, 52, 71, 58); g.quadraticCurveTo(70, 82, 48, 82); g.quadraticCurveTo(26, 82, 25, 58); g.fill();
+      g.fillStyle = '#7a5a3a'; g.fillRect(39, 12, 18, 9);
+      g.fillStyle = 'rgba(255,255,255,0.6)'; g.fillRect(31, 46, 4, 18);
+    } else {
+      const col = kind === 's' ? '#ffb8d8' : MATS[id].hex;
+      const gr = g.createLinearGradient(20, 20, 76, 80); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.35, col); gr.addColorStop(1, '#1a1620'); g.fillStyle = gr;
+      g.beginPath();
+      if(kind === 's'){ g.moveTo(48, 12); g.lineTo(66, 44); g.lineTo(48, 86); g.lineTo(30, 44); }
+      else { g.moveTo(26, 50); g.lineTo(36, 26); g.lineTo(58, 20); g.lineTo(76, 38); g.lineTo(72, 66); g.lineTo(50, 80); g.lineTo(28, 72); }
+      g.closePath(); g.fill(); g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 2; g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,0.5)'; g.beginPath(); g.moveTo(40, 30); g.lineTo(50, 46); g.stroke();
+    }
+    return (iconCache[key] = c.toDataURL());
+  }
+  function makeTile(it, onClick){
+    const t = el('button', 'tile' + (it.eq ? ' eq' : '') + (invSel && invSel.kind === it.kind && invSel.id === it.id ? ' sel' : ''));
+    t.type = 'button'; t.style.setProperty('--rc', RARITY[it.rarity][1]); t.title = it.name; t.setAttribute('aria-label', it.name);
+    const img = new Image(); img.src = itemIcon(it.kind, it.id); img.alt = ''; t.append(img);
+    if(it.badge) t.append(el('span', 'badge', it.badge));
+    if(it.eq) t.append(el('span', 'eqtag', it.eq));
+    t.addEventListener('click', onClick);
+    return t;
+  }
   function renderInventory(){
     const tabs = $('invTabs'); tabs.innerHTML = '';
     for(const [id, label] of INV_TABS){ const b = btn(label, () => { invTab = id; renderInventory(); }); b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', invTab === id); tabs.append(b); }
-    $('closeInv').textContent = 'Close (' + keyName(SET.bind.inventory) + ')';
+    restoreLoadoutContent();
     const body = $('invBody'); body.innerHTML = '';
-    ({ gear:invGear, pouch:invPouch, char:invChar, best:invBestiary, quests:invQuests })[invTab](body);
+    if(invTab === 'skills'){ body.append($('loadoutContent')); renderLoadout(); return; }
+    ({ inv:invMain, char:invChar, best:invBestiary, quests:invQuests })[invTab](body);
   }
-  function invGear(body){
-    const G = gearW(), off = offhandW();
-    body.append(el('div', 'sub', 'Main: ' + G.name + (upgLv() ? ' +' + upgLv() : '') + ' · Off-hand: ' + (off ? off.name : 'none') + ' · Armor: ' + gearA().name));
-    body.append(el('div', 'sect', 'Weapons'));
-    const wg = el('div', 'sk'); body.append(wg);
-    for(const id in WEAPONS){
-      if(!P.owned.has(id)) continue;
-      const g = WEAPONS[id], lv = P.upg[id] || 0, main = P.gear.weapon === id, isOff = P.gear.offhand === id;
-      const c = card(g.name + (lv ? ' +' + lv : ''), main ? '#ffd166' : isOff ? '#7fd8ff' : '#958ca8', [g.desc, gearStats('w', g) + (g.oneHand ? ' · one-handed' : ' · two-handed')]);
-      const row = el('div', 'btns');
-      row.append(btn(main ? 'Main hand' : 'Equip', () => { P.gear.weapon = id; if(P.gear.offhand === id || !g.oneHand) P.gear.offhand = null; applyGear(); renderInventory(); }, { cls:main ? 'on' : '', disabled:main }));
-      if(g.oneHand && !main){
-        if(isOff) row.append(btn('Remove off-hand', () => { P.gear.offhand = null; applyGear(); renderInventory(); }));
-        else row.append(btn('Off-hand', () => { P.gear.offhand = id; applyGear(); renderInventory(); }, { disabled:!G.oneHand }));
+  function invMain(body){
+    const items = invItems();
+    if(invSel && !items.some(i => i.kind === invSel.kind && i.id === invSel.id)) invSel = null;
+    if(!invSel){ const eq = items.find(i => i.kind === 'w' && i.eq === 'E'); if(eq) invSel = { kind:eq.kind, id:eq.id }; }
+    const main = el('div', 'invmain'); body.append(main);
+    // left: the character, your purse, and what's equipped
+    const left = el('div', 'invleft'); main.append(left);
+    const pvw = el('div', 'pvwrap'); const P2 = previewInit(); pvw.append(P2.cv, el('div', 'pvhint', 'drag to turn')); left.append(pvw);
+    const purse = el('div', 'purse'); purse.append(el('span', '', 'Gold ' + P.gold.toLocaleString()), el('span', '', 'Flasks ' + P.flasks + '/' + flaskCap())); left.append(purse);
+    const eqrow = el('div', 'eqrow'); left.append(eqrow);
+    const slots = [['Main', items.find(i => i.kind === 'w' && i.eq === 'E')], ['Off', items.find(i => i.kind === 'w' && i.eq === 'OH')], ['Armor', items.find(i => i.kind === 'a' && i.eq)], ['Trinket', items.find(i => i.eq === 'T1')], ['Trinket', items.find(i => i.eq === 'T2')]];
+    for(const [label, it] of slots){
+      const sl = el('div', 'eqslot');
+      if(it) sl.append(makeTile(Object.assign({}, it, { eq:'', badge:it.badge }), () => { invSel = { kind:it.kind, id:it.id }; renderInventory(); }));
+      else { const e2 = el('div', 'tile empty'); e2.setAttribute('aria-label', label + ' slot empty'); sl.append(e2); }
+      sl.append(el('span', '', label)); eqrow.append(sl);
+    }
+    // middle: the grid, with category filters underneath
+    const mid = el('div', 'invmid'); main.append(mid);
+    const grid = el('div', 'tilegrid'); mid.append(grid);
+    const shown = items.filter(i => invFilter === 'all' || i.cat === invFilter);
+    for(const it of shown) grid.append(makeTile(it, () => { invSel = { kind:it.kind, id:it.id }; renderInventory(); }));
+    if(!shown.length) grid.append(el('div', 'sub', 'Nothing here yet.'));
+    const filters = el('div', 'filters'); mid.append(filters);
+    for(const [id, label] of INV_FILTERS){ const b = btn(label, () => { invFilter = id; renderInventory(); }); b.setAttribute('aria-pressed', invFilter === id); filters.append(b); }
+    // right: the selected item
+    const det = el('div', 'idetail'); main.append(det);
+    const it = invSel && items.find(i => i.kind === invSel.kind && i.id === invSel.id);
+    if(!it){ det.append(el('p', '', 'Pick an item to see what it does.')); return; }
+    const big = new Image(); big.src = itemIcon(it.kind, it.id); big.className = 'big'; big.alt = ''; det.append(big);
+    det.append(el('h3', '', it.name));
+    const rar = el('div', 'rar', RARITY[it.rarity][0] + ' · ' + ({ '1h':'One-handed sword', '2h':gearW && WEAPONS[it.id] && WEAPONS[it.id].axe ? 'Axe' : 'Two-handed', armor:'Armor', trinket:'Trinket', items:'Consumable', mats:'Material' })[it.cat]);
+    rar.style.color = RARITY[it.rarity][1] === '#55555f' ? 'var(--muted)' : RARITY[it.rarity][1]; det.append(rar);
+    const acts = el('div', 'acts');
+    if(it.kind === 'w'){
+      const g = WEAPONS[it.id], main2 = P.gear.weapon === it.id, off = P.gear.offhand === it.id;
+      det.append(el('p', '', g.desc), el('div', 'stats', gearStats('w', g) + (g.oneHand ? ' · one-handed' : ' · two-handed')));
+      acts.append(btn(main2 ? 'Equipped in main hand' : 'Equip main hand', () => { P.gear.weapon = it.id; if(P.gear.offhand === it.id || !g.oneHand) P.gear.offhand = null; applyGear(); renderInventory(); }, { cls:'main', disabled:main2 }));
+      if(g.oneHand && !main2) acts.append(off ? btn('Unequip off-hand', () => { P.gear.offhand = null; applyGear(); renderInventory(); })
+        : btn(gearW().oneHand ? 'Equip off-hand (dual wield)' : 'Off-hand needs a one-handed main weapon', () => { P.gear.offhand = it.id; applyGear(); renderInventory(); }, { disabled:!gearW().oneHand }));
+    } else if(it.kind === 'a'){
+      const g = ARMORS[it.id], on = P.gear.armor === it.id;
+      det.append(el('p', '', g.desc), el('div', 'stats', gearStats('a', g)));
+      acts.append(btn(on ? 'Equipped' : 'Equip', () => { P.gear.armor = it.id; applyGear(); renderInventory(); }, { cls:'main', disabled:on }));
+    } else if(it.kind === 't'){
+      det.append(el('p', '', trinketInfo(it.id).desc));
+      for(let i = 0; i < 2; i++){
+        const here = P.trinkets[i] === it.id;
+        acts.append(btn(here ? 'Unequip from slot ' + (i + 1) : 'Equip in slot ' + (i + 1) + (P.trinkets[i] ? ' (replaces ' + trinketInfo(P.trinkets[i]).name + ')' : ''), () => {
+          if(here) P.trinkets[i] = null; else { P.trinkets = P.trinkets.map(t => t === it.id ? null : t); P.trinkets[i] = it.id; }
+          renderInventory();
+        }, { cls:i === 0 && !here ? 'main' : '' }));
       }
-      c.append(row); wg.append(c);
+    } else if(it.kind === 'i'){
+      const I = ITEMS[it.id], idx = BELT.indexOf(it.id);
+      det.append(el('p', '', I.desc), el('div', 'stats', 'Carrying ' + (P.inv.items[it.id] || 0) + ' / ' + I.max + ' · belt key ' + keyName(SET.bind['item' + (idx + 1)]) + (I.dur && P.buffs[it.id] > 0 ? ' · active, ' + Math.ceil(P.buffs[it.id] / 60) + 's left' : '')));
+      if(I.dur) acts.append(btn('Use now', () => { useItem(it.id, true); renderInventory(); }, { cls:'main', disabled:!(P.inv.items[it.id] > 0) }));
+      else acts.append(el('p', '', 'Throw it from your belt during a fight.'));
+    } else if(it.kind === 's'){
+      det.append(el('p', '', 'Three shards add a permanent flask charge, up to 6.'), el('div', 'stats', P.shards + ' / 3 collected · carrying ' + flaskCap() + ' flasks'));
+    } else {
+      det.append(el('p', '', it.id === 'iron' ? 'Dropped on Floor 1.' : it.id === 'rime' ? 'Dropped on Floor 2.' : 'Dropped on Floor 3 and below.'), el('div', 'stats', 'Bram uses these to upgrade weapons and fuse trinkets. Odo trades them too.'));
     }
-    body.append(el('div', 'sub', 'Dual wielding: put a one-handed weapon in your off-hand while your main weapon is also one-handed. Every swing gets a follow-up off-hand cut and swings a frame faster, but you lose a little clash strength and your guard breaks 25% faster.'));
-    body.append(el('div', 'sect', 'Armor'));
-    const ag = el('div', 'sk'); body.append(ag);
-    for(const id in ARMORS){
-      if(!P.owned.has(id)) continue;
-      const g = ARMORS[id], on = P.gear.armor === id;
-      const c = card(g.name, on ? '#ffd166' : '#958ca8', [g.desc, gearStats('a', g)]);
-      const row = el('div', 'btns'); row.append(btn(on ? 'Equipped' : 'Equip', () => { P.gear.armor = id; applyGear(); renderInventory(); }, { cls:on ? 'on' : '', disabled:on }));
-      c.append(row); ag.append(c);
-    }
-    body.append(el('div', 'sect', 'Trinkets'));
-    const tg = el('div', 'deck'); body.append(tg);
-    const owned = [...P.trinketsOwned];
-    for(let i = 0; i < 2; i++){
-      const l = el('label', 'panel'); l.append('Slot ' + (i + 1));
-      const cur = P.trinkets[i];
-      const opts = [['', owned.length ? 'Empty' : 'None found yet'], ...owned.filter(t => t === cur || !P.trinkets.includes(t)).map(t => [t, trinketInfo(t).name])];
-      l.append(mkSelect(opts, cur || '', v => { P.trinkets[i] = v || null; renderInventory(); }), el('small', '', cur ? trinketInfo(cur).desc : ''));
-      tg.append(l);
-    }
-    if(owned.length){
-      const list = el('div', 'sk'); body.append(list);
-      for(const t of owned){ const info = trinketInfo(t); list.append(card(info.name, P.trinkets.includes(t) ? '#c78dff' : '#5a4a6a', [info.desc + (P.trinkets.includes(t) ? ' (equipped)' : '')])); }
-    }
+    det.append(acts);
   }
-  function invPouch(body){
-    body.append(el('div', 'goldline', 'Gold ' + P.gold + ' · Flasks ' + P.flasks + '/' + flaskCap() + ' · Flask shards ' + P.shards + '/3'));
-    body.append(el('div', 'sect', 'Belt'));
-    const bg = el('div', 'sk'); body.append(bg);
-    BELT.forEach((id, i) => {
-      const I = ITEMS[id], n = P.inv.items[id] || 0, active = I.dur && P.buffs[id] > 0;
-      const c = card(I.name + ' ×' + n, I.hex, [I.desc, 'Key ' + keyName(SET.bind['item' + (i + 1)]) + (active ? ' · active, ' + Math.ceil(P.buffs[id] / 60) + 's left' : '')]);
-      if(I.dur){ const row = el('div', 'btns'); row.append(btn('Use now', () => { useItem(id, true); renderInventory(); }, { disabled:n <= 0 })); c.append(row); }
-      bg.append(c);
-    });
-    body.append(el('div', 'sect', 'Materials'));
-    const mg = el('div', 'sk'); body.append(mg);
-    for(const k in MATS) mg.append(card(MATS[k].name + ' ×' + (P.inv.mats[k] || 0), MATS[k].hex, [k === 'iron' ? 'Dropped on Floor 1.' : k === 'rime' ? 'Dropped on Floor 2.' : 'Dropped on Floor 3 and below.', 'Bram turns these into weapon upgrades.']));
+  // the character preview: its own little renderer, showing your current gear
+  var pv = null; // var: applyGear can run before this line during load
+  function previewInit(){
+    if(pv) return pv;
+    const cv = document.createElement('canvas'); cv.width = 480; cv.height = 600; cv.setAttribute('aria-label', 'Your character');
+    const r = new THREE.WebGLRenderer({ canvas:cv, antialias:true, alpha:true });
+    r.setPixelRatio(1); r.setSize(480, 600, false); r.outputEncoding = THREE.sRGBEncoding; r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.0;
+    const sc = new THREE.Scene(), cam = new THREE.PerspectiveCamera(30, 480 / 600, 0.1, 50);
+    cam.position.set(0, 1.3, 5.6); cam.lookAt(0, 1.05, 0);
+    sc.add(new THREE.HemisphereLight(0xd8d0f0, 0x302838, 0.5));
+    const key = new THREE.DirectionalLight(0xfff4e8, 0.9); key.position.set(2, 4, 3); sc.add(key);
+    const rim = new THREE.DirectionalLight(0x9fb4ff, 0.9); rim.position.set(-3, 2, -3); sc.add(rim);
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(0.9, 40), new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.35 })); disc.rotation.x = -Math.PI / 2; sc.add(disc);
+    const R = makeRig({ scale:1, body:0xc9d2e3, dark:0x727c90, trim:0x5fb6cc, blade:0xeef6ff, eye:0x5fe0ff, wlen:0.95, cape:0xa8262f });
+    scene.remove(R.root); sc.add(R.root);
+    pv = { cv, r, sc, cam, R, yaw:0.6, drag:false, lx:0, pose:newPose() };
+    cv.addEventListener('pointerdown', e => { pv.drag = true; pv.lx = e.clientX; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener('pointermove', e => { if(!pv.drag) return; pv.yaw += (e.clientX - pv.lx) * 0.012; pv.lx = e.clientX; });
+    cv.addEventListener('pointerup', () => { pv.drag = false; });
+    applyGearTo(R);
+    return pv;
+  }
+  function renderPreview(){
+    if(!pv || !pv.cv.isConnected) return;
+    if(!pv.drag) pv.yaw += 0.006;
+    const st = P.stance === 'flow' ? { armUp:0.12, armYaw:0.7, ext:0.6, tilt:0.35, crouch:0.22 } : P.stance === 'rooted' ? { armUp:0.95, armYaw:0.15, ext:0.4, tilt:1.25, crouch:0.32 } : {};
+    blendPose(pv.pose, Object.assign(newPose(), st, { stride:0.25 }), 0.1);
+    applyPose(pv.R, pv.pose, 0, 0, false, 0);
+    pv.R.root.rotation.y = pv.yaw;
+    pv.R.root.updateMatrixWorld(true);
+    pv.r.render(pv.sc, pv.cam);
   }
   function invChar(body){
     const g = el('div', 'statgrid panel'); g.style.padding = '12px 14px';
@@ -5771,6 +5952,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     for(const b of W.bounties){ const d = BOUNTIES[b.id]; if(d) body.append(card(d.text, b.prog >= d.n ? '#7fe38a' : '#9fb4ff', [Math.min(b.prog, d.n) + ' / ' + d.n + ' · ' + d.gold + ' gold' + (b.prog >= d.n ? ' · claim it at the board' : '')])); }
   }
   $('closeInv').addEventListener('click', () => closeScreen());
+  $('invSettings').addEventListener('click', () => { closeScreen(true); openSettings(); });
   // ----- pause menu -----
   function renderPause(){
     const box = $('pauseBtns'); box.innerHTML = '';
@@ -5883,6 +6065,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     updateCamera(dt, vx, vz);
     placeSky(); windU.value = now * 0.001;
     if(mode === 'world') worldFrame(now);
+    if(screen === 'inv' && invTab === 'inv') renderPreview();
     if(frameNo % 6 === 0) updateAmbience();
     updateMusic();
     // impact frames: a couple of stark, high-contrast frames on the biggest hits

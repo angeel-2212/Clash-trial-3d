@@ -23,7 +23,7 @@ Inspired by Sekiro and Sword Art Online. Read the enemy's body (there are no war
 | 1-4 | D-pad left/right + up | Belt items: throwing knife, whetstone, iron tonic, swift draught (Adventure) |
 | E | Y | Talk / rest (out of combat) |
 | R | X | Drink a flask, or respawn after dying |
-| I | | Inventory: equip gear anywhere, see your pouch, character sheet, bestiary and quests (Adventure) |
+| I | | Inventory: an item grid with rarity colors and a 3D preview of your character. Equip gear anywhere, use items, swap skills, and check your stats, bestiary and quests (Adventure) |
 | M | | Map (Adventure) |
 | K | Start | Loadout (pauses) |
 | P / Esc | Back | Pause menu: inventory, map, loadout, settings, save, quit to title |
