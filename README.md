@@ -45,6 +45,27 @@ Inspired by Sekiro and Sword Art Online. Read the enemy's body (there are no war
   - **Vesk, the rival:** runs away when he's losing and comes back remembering your habits. Beat him on the third meeting to take his blade.
   - **Death:** you drop your gold where you fell. Get back to it before you die again. Stats and skills stay.
   - **E** talks or rests when you're out of combat.
+  - **Floor 2, the Rime Pass:** opens behind the Ashen Warden. It adds Reavers (twin blades, deliberately late hits), Sentinels (halberd charges and spins, fast guard regen), and the Rimeborn King.
+  - **Gorrun, the second rival:** a brute who holds grudges. Whatever hurt him most last time (skills, light cuts or heavy blows), he resists next time.
+  - **Elite camps:** about a quarter of camps come back led by an elite (tougher, faster, triple gold) who drops a new move or a mantra.
+
+### Your build (press K)
+- **Combat deck:** pick which move sits in each part of your string: 3 click slots and 2 pause slots. Moves you can learn: Lunge, Wide Arc, Whirlwind.
+- **Mantras:** attach one to a sword skill to change how it works:
+  - Echo: one extra hit
+  - Swift: faster windup
+  - Brutal: harder hits
+  - Retreat: hop out of the freeze
+  - Leech: heal on hit
+  - Linked: easier chaining
+  - Breaker: every hit is a guard crush
+- **Talents:** earned by how you fight, not picked:
+  - Steady Hand: deflect streaks
+  - Iron Grip: blade lock wins
+  - Ghost Step: perfect dodges
+  - Executioner: deathblows
+  - Predator: ambushes
+  - Last Stand: low-HP kills
 - **The Trial:** 8 rooms ending in the Warden boss. Dying resets the Trial and costs a bit of your stats. There's an optional **Hardcore** mode with permadeath.
 - **Arena:** endless waves.
 
