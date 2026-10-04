@@ -20,6 +20,7 @@ Inspired by Sekiro and Sword Art Online. Read the enemy's body (there are no war
 | Space | A | Jump (clears sweeps) |
 | Q / E | RT / LT | Sword skills. Press the other one at the end to chain them |
 | C | D-pad down | Switch stance |
+| 1-4 | D-pad left/right + up | Belt items: throwing knife, whetstone, iron tonic, swift draught (Adventure) |
 | E | Y | Talk / rest (out of combat) |
 | R | X | Drink a flask, or respawn after dying |
 | K | Start | Loadout (pauses) |
@@ -34,7 +35,12 @@ Inspired by Sekiro and Sword Art Online. Read the enemy's body (there are no war
 ### Core systems
 - **Clashes and exchanges:** swing into their swing as it releases and the blades collide. Chain collisions into an exchange; even clashes lock blades.
 - **Parry rules:** a parried light hit = 0.2s stagger. A parried heavy or skill = a STR clash.
-- **Anti-spam:** repeated moves go stale, enemies learn your patterns, whiffs and mid-windup hits get punished.
+- **Anti-spam:**
+  - Repeated moves go stale.
+  - Enemies learn your patterns. Your opener counts for half, since every string starts with it.
+  - Clicks wasted mid-swing count as mashing.
+  - Whiffs and mid-windup hits get punished.
+  - Combo pips above your skills show where you are in the string and what a pause would do next.
 - **Sword skills:** a glowing pre-motion, a motion you can't cancel, then a freeze. Skills gain mastery, you can learn enemy skills by deflecting every hit, and there are counter skills.
 - **Stances:** same moves, different timing.
   - **Flow:** faster swings and rolls, easier perfect links, lighter hits.
@@ -77,6 +83,12 @@ The open-world mode. It saves automatically in your browser.
 - **Elite camps:** about a quarter of camps come back led by an elite. They pay triple gold and drop a new move or a mantra.
 - **Boss rematches:** beaten floor bosses can be called back, stronger each time. Rematches are the only way to get the Phantom, Sunder and Tempest mantras.
 - **Gear changes how you fight:** reach, swing frames, clash strength, rolls and guard drain. Unique weapons are dropped by bosses and rivals or forged for quests.
+- **Loot:** enemies drop things you walk over to pick up.
+  - **Materials:** Iron Scrap, Rimesteel Shards and Cinder Cores. Bram uses them to upgrade your weapons up to +5.
+  - **Belt items:** throwing knives (interrupt a light attack mid-windup), whetstones (+20% damage), iron tonics (guard holds longer) and swift draughts (faster movement and rolls).
+  - **Flask shards:** three of them add a permanent flask charge, up to 6.
+  - **Gold pouches.**
+  - **Trinkets:** every enemy type has its own. You get two trinket slots.
 - **Death:** you drop your gold where you fell. Get back to it before you die again. Stats and skills stay.
 
 ### Your build (press K)

@@ -113,6 +113,18 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 .pbar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
 .pbar i{display:block;height:100%;background:var(--guard)}
 .goldline{font-family:var(--display);letter-spacing:.12em;color:var(--guard);text-align:center;font-size:14px}
+.pips{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:6px;pointer-events:none;opacity:0;transition:opacity .25s}
+.pips i{width:22px;height:5px;border-radius:3px;background:rgba(255,255,255,0.14)}
+.pips i.on{background:var(--guard);box-shadow:0 0 8px rgba(255,209,102,0.6)}
+.pips i.alt{background:#cfd8ff;box-shadow:0 0 8px rgba(207,216,255,0.6)}
+.pips span{font-size:11px;letter-spacing:.06em;color:var(--muted);margin-left:6px;white-space:nowrap}
+.belt{display:flex;gap:6px}
+.belt .bs{min-width:58px;height:62px;padding:0 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:10px;color:var(--muted);text-align:center;position:relative}
+.belt .bs b{font-size:12px;color:var(--fg)}
+.belt .bs em{font-style:normal;font-size:15px;font-weight:700;color:var(--fg);font-variant-numeric:tabular-nums}
+.belt .bs.empty{opacity:0.4}
+.belt .bs.sel{box-shadow:0 0 0 2px var(--guard)}
+.belt .bs .bt{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--win);transform-origin:left}
 .qtrack{position:fixed;top:calc(206px + env(safe-area-inset-top,0px));right:16px;width:220px;padding:10px 12px;font-size:12px;color:var(--muted);pointer-events:none;display:flex;flex-direction:column;gap:6px}
 .qtrack b{display:block;color:var(--guard);font-family:var(--display);letter-spacing:.08em;font-size:12px}
 .slot.stance{min-width:84px}
@@ -197,7 +209,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 
 <div class="log" id="log"></div>
 <div class="hint panel" id="mouseHint" hidden>Click to grab the mouse again</div>
+<div class="pips" id="pips"><i></i><i></i><i></i><span id="pipNext"></span></div>
 <div class="skills">
+  <div class="belt" id="belt" hidden></div>
   <div class="slot panel" id="slotQ"><b>Q</b><span id="nameQ">Sonic Rush</span><i class="lv" id="lvQ">Lv1</i><div class="glow" id="glowQ"></div><div class="cd" id="cdQ" hidden></div></div>
   <div class="slot panel" id="slotE"><b>E</b><span id="nameE">Four Fangs</span><i class="lv" id="lvE">Lv1</i><div class="glow" id="glowE"></div><div class="cd" id="cdE" hidden></div></div>
   <div class="slot panel stance" id="slotStance"><b id="stanceName">Balanced</b><span id="stanceKey">stance · C</span></div>
@@ -213,6 +227,11 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     <div class="sect">Sword skills</div>
     <div class="sub">Equip a skill to Q or E. Skills level up when they land: faster windup, shorter freeze, more damage. Attach a mantra to change how a skill behaves.</div>
     <div class="sk" id="skList"></div>
+    <div class="sect">Trinkets</div>
+    <div class="sub">Two slots. Every enemy type drops its own trinket: rarely from normal enemies, often from elites, always from bosses.</div>
+    <div class="deck" id="trinketList"></div>
+    <div class="sect">Pouch</div>
+    <div class="sk" id="pouchList"></div>
     <div class="sect">Talents</div>
     <div class="sub">You don't pick these. You earn them by how you fight.</div>
     <div class="sk" id="talentList"></div>
@@ -296,9 +315,10 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   // ---------- settings (saved per browser) ----------
   const SETTINGS_KEY = 'clashTrial3d.settings.v1';
   const BIND_DEFAULT = { forward:'KeyW', back:'KeyS', left:'KeyA', right:'KeyD', jump:'Space', roll:'ShiftLeft', parry:'KeyF', skillQ:'KeyQ', skillE:'KeyE',
-    interact:'KeyE', lock:'Tab', flask:'KeyR', stance:'KeyC', loadout:'KeyK', settings:'KeyO', mute:'KeyM' };
+    interact:'KeyE', lock:'Tab', flask:'KeyR', stance:'KeyC', item1:'Digit1', item2:'Digit2', item3:'Digit3', item4:'Digit4', loadout:'KeyK', settings:'KeyO', mute:'KeyM' };
   const BIND_LABEL = { forward:'Move forward', back:'Move back', left:'Move left', right:'Move right', jump:'Jump', roll:'Roll', parry:'Parry / block', skillQ:'Skill 1',
-    skillE:'Skill 2', interact:'Talk / rest', lock:'Lock on', flask:'Flask / respawn', stance:'Switch stance', loadout:'Loadout', settings:'Settings', mute:'Mute' };
+    skillE:'Skill 2', interact:'Talk / rest', lock:'Lock on', flask:'Flask / respawn', stance:'Switch stance', item1:'Throwing knife', item2:'Whetstone', item3:'Iron tonic', item4:'Swift draught',
+    loadout:'Loadout', settings:'Settings', mute:'Mute' };
   const SET_DEFAULT = { sens:1, invertY:false, fov:62, shake:1, volume:0.8, music:0.6, quality:'high', dmgNumbers:true };
   const SET = (function(){
     let s = {};
@@ -328,10 +348,15 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       ambBus = AC.createGain(); ambBus.gain.value = 1; ambBus.connect(master);
       noiseBuf = AC.createBuffer(1, AC.sampleRate * 2, AC.sampleRate);
       const d = noiseBuf.getChannelData(0); for(let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      // sparse pops for fire crackle
-      crackleBuf = AC.createBuffer(1, AC.sampleRate * 3, AC.sampleRate);
+      // soft, sparse pops for a campfire: short decaying ticks, no constant hiss
+      crackleBuf = AC.createBuffer(1, AC.sampleRate * 4, AC.sampleRate);
       const c = crackleBuf.getChannelData(0);
-      for(let i = 0; i < c.length; i++) c[i] = Math.random() < 0.0009 ? (Math.random() * 2 - 1) : c[i - 1] ? c[i - 1] * 0.6 : 0;
+      for(let i = 0; i < c.length; i++){
+        if(Math.random() < 0.00035){
+          const len = 60 + Math.random() * 260, amp = 0.15 + Math.random() * 0.55;
+          for(let k = 0; k < len && i + k < c.length; k++) c[i + k] += (Math.random() * 2 - 1) * amp * Math.pow(1 - k / len, 3);
+        }
+      }
       const loop = (buf, type, freq, q) => {
         const src = AC.createBufferSource(); src.buffer = buf; src.loop = true;
         const f = AC.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q || 0.7;
@@ -341,7 +366,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       };
       AMB.wind = loop(noiseBuf, 'bandpass', 420, 0.6);
       AMB.gust = loop(noiseBuf, 'bandpass', 1400, 2.5);
-      AMB.crackle = loop(crackleBuf, 'highpass', 900);
+      AMB.crackle = loop(crackleBuf, 'bandpass', 1500, 0.5);
       AMB.rumble = loop(noiseBuf, 'lowpass', 110);
       AMB.water = loop(noiseBuf, 'highpass', 2600);
       // town murmur: noise through two voice-like formants
@@ -371,11 +396,16 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function updateAmbience(){
     if(!AC || !AMB.wind) return;
     const t = AC.currentTime, k = muted ? 0 : 1, id = AREA ? AREA.id : 'arena';
-    const lvl = { wind:0.012, gust:0, crackle:0.02, rumble:0, water:0, murmur:0 };
-    if(id === 'town'){ lvl.wind = 0.01; lvl.murmur = 0.035; lvl.crackle = 0.012 + 0.05 * clamp(1 - Math.hypot(P.x - 11.7, P.z - 3.5) / 9, 0, 1); lvl.water = 0.03 * clamp(1 - Math.hypot(P.x, P.z) / 9, 0, 1); }
-    else if(id === 'wilds'){ lvl.wind = 0.03; lvl.gust = 0.008; lvl.crackle = 0.02; }
-    else if(id === 'rime'){ lvl.wind = 0.07; lvl.gust = 0.03; lvl.crackle = 0.008; }
-    else if(id === 'cinder'){ lvl.wind = 0.02; lvl.crackle = 0.07; lvl.rumble = 0.08; }
+    // fire crackle only when you're actually standing near a fire
+    let fd = 99;
+    const spots = AREA ? AREA.fireSpots : torches.map(t => t.L.position);
+    if(spots) for(const f of spots){ const d = Math.hypot(P.x - f.x, P.z - f.z); if(d < fd) fd = d; }
+    const nearFire = clamp(1 - fd / 8, 0, 1);
+    const lvl = { wind:0.012, gust:0, crackle:0.03 * nearFire, rumble:0, water:0, murmur:0 };
+    if(id === 'town'){ lvl.wind = 0.01; lvl.murmur = 0.035; lvl.water = 0.03 * clamp(1 - Math.hypot(P.x, P.z) / 9, 0, 1); }
+    else if(id === 'wilds'){ lvl.wind = 0.03; lvl.gust = 0.008; }
+    else if(id === 'rime'){ lvl.wind = 0.07; lvl.gust = 0.03; }
+    else if(id === 'cinder'){ lvl.wind = 0.03; lvl.gust = 0.01; lvl.crackle = 0.008 + 0.03 * nearFire; lvl.rumble = 0.012; }
     // gusts come and go
     const g = 0.6 + 0.4 * Math.sin(t * 0.21) * Math.sin(t * 0.37 + 1);
     for(const key in lvl){ const L = AMB[key]; if(L) L.g.gain.setTargetAtTime(lvl[key] * k * (key === 'wind' || key === 'gust' ? g : 1), t, 0.6); }
@@ -453,6 +483,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       else { noise(t, 0.06, { type:'lowpass', f0:600, f1:180, gain:0.05 }); noise(t, 0.05, { f0:3200, q:1, gain:0.012 }); } },
     stance(p){ const t = AC.currentTime; noise(t, 0.18, { f0:400 * p, f1:1600 * p, q:1.5, gain:0.08, attack:0.03 }); SFX.clang(0.35, 1.6 * p); },
     ui(){ const t = AC.currentTime; tone(t, 0.08, { type:'triangle', f0:880, f1:990, gain:0.04 }); },
+    loot(){ const t = AC.currentTime; noise(t, 0.12, { f0:2400, q:3, gain:0.04 }); tone(t + 0.02, 0.18, { type:'triangle', f0:1320, f1:1250, gain:0.035 }); },
+    pickup(p){ p = p || 1; const t = AC.currentTime; tone(t, 0.12, { type:'triangle', f0:780 * p, gain:0.045 }); tone(t + 0.06, 0.16, { type:'triangle', f0:1170 * p, gain:0.035 }); },
     flick(){ const t = AC.currentTime; noise(t, 0.16, { f0:700, f1:3000, q:1.2, gain:0.07, attack:0.02 }); },
     dummy(){ const t = AC.currentTime; noise(t, 0.1, { type:'lowpass', f0:700, f1:200, gain:0.18 }); tone(t, 0.08, { f0:140, f1:90, gain:0.08 }); },
     land(){ const t = AC.currentTime; noise(t, 0.12, { type:'lowpass', f0:420, f1:120, gain:0.16 }); tone(t, 0.1, { f0:90, f1:50, gain:0.12 }); },
@@ -996,7 +1028,17 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 
   // ---------- input ----------
   const keys = {}, buf = {};
-  const press = (k, f) => { buf[k] = f || 8; if(k === 'attack'){ pressLog.push(frameNo); if(pressLog.length > 10) pressLog.shift(); } };
+  // wasted clicks: ones that land way too early in a swing to ever be used. Only these count as mashing,
+  // so a normal combo rhythm never gets flagged as spam
+  const wasteLog = [];
+  const press = (k, f) => {
+    buf[k] = f || 8;
+    if(k === 'attack'){
+      pressLog.push(frameNo); if(pressLog.length > 10) pressLog.shift();
+      if(P.atkT > 0 && P.lock > 13){ wasteLog.push(frameNo); if(wasteLog.length > 10) wasteLog.shift(); }
+    }
+  };
+  const isMashing = () => wasteLog.filter(f => frameNo - f < 60).length >= 3;
   const has = k => buf[k] > 0;
   const take = k => { buf[k] = 0; };
   const mouse = { l:false, r:false, dx:0, dy:0 };
@@ -1014,6 +1056,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     else if(a === 'skillE') press('skillE', 8);
     else if(a === 'flask'){ if(!P.alive || runOver) handleR(); else press('flask', 6); }
     else if(a === 'stance') cycleStance();
+    else if(/^item\d$/.test(a)) useItem(BELT[+a[4] - 1]);
     else if(a === 'mute'){ muted = !muted; log(muted ? 'Sound off' : 'Sound on', 'tip'); }
   }
   addEventListener('keydown', e => {
@@ -1065,7 +1108,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     // camera on the right stick, routed through the same sensitivity as the mouse
     mouse.dx += PAD.rx * 16; mouse.dy += PAD.ry * 11;
     PAD.block = now[4];
-    if(down(5)) press('attack', 8);
+    if(down(5)) press('attack', 12);
     if(down(4)) press('parry', 3);
     if(down(7)) press('skillQ', 8);
     if(down(6)) press('skillE', 8);
@@ -1075,6 +1118,10 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(down(3) && !(mode === 'world' && tryInteract())){}
     if(down(11)) toggleLock();
     if(down(13)) cycleStance();
+    // belt: D-pad left/right picks an item, D-pad up uses it
+    if(down(14)) P.beltSel = (P.beltSel + BELT.length - 1) % BELT.length;
+    if(down(15)) P.beltSel = (P.beltSel + 1) % BELT.length;
+    if(down(12)) useItem(BELT[P.beltSel]);
   }
   addEventListener('keyup', e => { keys[e.code] = false; });
   canvas.addEventListener('wheel', e => {
@@ -1085,7 +1132,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   canvas.addEventListener('mousedown', e => {
     initAudio();
     if(started && !locked){ try{ const r = canvas.requestPointerLock(); if(r && r.catch) r.catch(() => {}); }catch(err){} }
-    if(e.button === 0){ press('attack', 8); mouse.l = true; }
+    if(e.button === 0){ press('attack', 12); mouse.l = true; }
     if(e.button === 2){ press('parry', 3); mouse.r = true; }
     if(e.button === 1){ e.preventDefault(); toggleLock(); }
   });
@@ -1164,7 +1211,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   const gearA = () => ARMORS[P.gear.armor] || ARMORS.coat;
   const weaponWeight = () => clamp((gearW().str - 0.88) / 0.42, 0, 1); // 0 = sabre-light, 1 = greatblade-heavy
   Object.defineProperty(P, 'str', { get(){ return Math.round((P.stats.str + 1) * gearW().str); } });
-  Object.defineProperty(P, 'def', { get(){ return Math.max(1, P.stats.def + gearA().def); } });
+  Object.defineProperty(P, 'def', { get(){ return Math.max(1, P.stats.def + gearA().def + (P.trinkets && P.trinkets.includes('crest') ? 3 : 0)); } });
   Object.defineProperty(P, 'maxHp', { get(){ return 60 + P.stats.vit * 4; } });
   const STAT_INFO = {
     str:{ label:'STR', color:'#ff8a5c' }, spd:{ label:'SPD', color:'#7fd8ff' },
@@ -1614,8 +1661,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function addPosture(e, amt){ if(!e.alive) return; e.posture += amt; e.postureT = 0; if(e.posture >= e.postureMax) deathblow(e); }
   function deathblow(e){
     e.posture = 0; e.justBroke = true; if(!e.spar){ bountyNote('deathblow'); talentNote('deathblows'); }
-    const exec = P.talents.has('exec'), dmg = (e.maxHp * 0.22 + 14) * (exec ? 1.25 : 1);
-    if(exec && P.alive){ const h = P.maxHp * 0.06; P.hp = Math.min(P.maxHp, P.hp + h); }
+    const exec = P.talents.has('exec'), dmg = (e.maxHp * 0.22 + 14) * (exec ? 1.25 : 1) * (hasT('mark') ? 1.2 : 1);
+    if(P.alive && (exec || hasT('ember'))){ const h = P.maxHp * ((exec ? 0.06 : 0) + (hasT('ember') ? 0.04 : 0)); P.hp = Math.min(P.maxHp, P.hp + h); }
     slowmo(520, 0.15); hitstop = Math.max(hitstop, 12); screenFlash(0.4, '#ffffff'); zoomPunch(11); shake = Math.max(shake, 0.06); impact(4);
     kickCam(P, e, 0.25);
     sfx('deathblow');
@@ -1644,15 +1691,15 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(m.skill && e.ci === 0) sfx('skill', 0.75);
     else if(m.type === 'sweep') sfx('windSweep'); else if(m.type === 'thrust') sfx('windThrust'); else if(m.heavy) sfx('windup');
   }
-  function enemyReact(eta, id){
+  function enemyReact(eta, id, weight){
     for(const e of enemies){
       if(!e.alive || e.idle || e.dummy || dist(e, P) > 3.6 || isBehind(e)) continue;
       const T = e.T;
       // they remember what you keep throwing at them, and start answering it
       e.mem = e.mem || {};
-      // mashing teaches them twice as fast
-      const mashing = pressLog.filter(f => frameNo - f < 60).length >= 5;
-      if(id) e.mem[id] = (e.mem[id] || 0) + (mashing ? 2 : 1);
+      // mashing teaches them twice as fast. Your opener only counts half: every string starts with it
+      const mashing = isMashing();
+      if(id) e.mem[id] = (e.mem[id] || 0) + (mashing ? 2 : 1) * (weight == null ? 1 : weight);
       if(id && (e.mem[id] >= 3 || mashing) && ['neutral','ready','recoil'].includes(e.state) && Math.random() < (mashing ? 0.6 : 0.7)){
         if(id === 'crush'){ e.state = 'backstep'; e.t = 12; }
         else if(id === 'rise'){ e.state = 'block'; e.t = 26; e.blockHits = 0; }
@@ -1863,7 +1910,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
     stunEnemy(e, 12); e.recoil = 0.35; e.softStun = true; push(e, P, 0.04 + (P.def - 10) * 0.004); e.armRecoil = 10;
     e.slowNext = Math.max(0, Math.round((P.def - 10) * 0.8)); // DEF: deflects delay their next swing
-    addPosture(e, 18);
+    addPosture(e, 18 + (hasT('heart') ? 8 : 0));
     hitstop = Math.max(hitstop, 7); shake = Math.max(shake, 0.02); kickCam(e, P, 0.06); zoomPunch(2);
     sparkBurst(c.x, c.y, c.z, '#ffe7a3', 24, 0.1); screenFlash(0.1, '#fff2c4');
     sfx('clang', 1.1, 1);
@@ -1916,7 +1963,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   }
   function playerBlock(e, st){
     P.hp -= st.dmg * (st.heavy ? 0.35 : 0.12) * takenMult() * (e.wpn === 'axe' ? 2 : 1);
-    P.posture += ((st.heavy ? 40 : 16) + (st.bash ? 26 : 0)) * gearA().guard * (e.wpn === 'mace' ? 1.8 : 1); P.postureT = 0;
+    P.posture += ((st.heavy ? 40 : 16) + (st.bash ? 26 : 0)) * gearA().guard * (e.wpn === 'mace' ? 1.8 : 1) * (hasT('rivet') ? 0.85 : 1) * (P.buffs.tonic > 0 ? 0.6 : 1); P.postureT = 0;
     passiveStat('def', 1.5, e);
     if(st.bash){ push(P, e, 0.1); hint('bash', 'Shield bashes chew through your guard. Parry them or step away.'); }
     push(P, e, st.heavy ? 0.1 : 0.04); P.recoil = st.heavy ? 0.35 : 0.15; P.armRecoil = 6;
@@ -1944,7 +1991,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     // caught mid-windup: counter-hit, it hurts more and you're stuck longer
     const counter = (P.atkT > 0 && !P.atkHit) || (P.skill && P.skill.phase !== 'motion');
     P.skill = null;
-    const d = st.dmg * takenMult() * (counter ? 1.35 : 1);
+    const d = st.dmg * takenMult() * (counter ? 1.35 : 1) * (st.heavy && hasT('plate') ? 0.88 : 1);
     P.hp -= d; P.flash = 1; P.recoil = st.heavy ? 0.7 : 0.4; P.hitTilt = hitSide(P, e) * (st.heavy ? 1.4 : 1);
     P.stunT = Math.round(((st.heavy ? 20 : 12) + (counter ? 8 : 0) + (st.bash ? 6 : 0)) * stunMult() * (gearA().poise ? 0.6 : 1));
     P.tc.deflectStreak = 0; push(P, e, st.heavy ? 0.14 : st.bash ? 0.18 : 0.06);
@@ -1976,6 +2023,11 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   // ---------- you hitting enemies ----------
   function playerHits(e, hit){
     if(!e.alive) return;
+    // weapon upgrades, buffs and trinkets all scale the hit in one place
+    const mul = upgM() * (P.buffs.whet > 0 ? 1.2 : 1) * (hasT('brand') && P.hp < P.maxHp * 0.5 ? 1.15 : 1);
+    hit = Object.assign({}, hit, { dmg:hit.dmg * mul, post:(hit.post || hit.dmg * 0.6) * mul * (hasT('knuckle') ? 1.12 : 1) });
+    // a thrown knife just bounces off a guard
+    if(hit.knife && !e.idle && !isBehind(e) && (e.state === 'parry' || e.state === 'block')){ const c = chestOf(e); floatText(c.x, c.y + 0.5, c.z, 'BLOCKED', '#cfd8ff', 0.9); sfx('block'); return; }
     e.justBroke = false;
     // hitting someone who never saw you coming
     const ambush = !!e.idle;
@@ -2036,7 +2088,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const dropBonus = hit.drop && (e.y > 0.05 || e.state === 'stun') ? 1.35 : 1;
     // what kind of hit this was: Gorrun remembers which kind hurt him most and grows a hide against it
     const cat = hit.skill ? 'skill' : (hit.big || hit.crush) ? 'heavy' : 'light', resisted = e.resist === cat;
-    const ambushM = ambush ? (P.talents.has('predator') ? 2.2 : 1.6) : 1;
+    const ambushM = ambush ? (P.talents.has('predator') ? 2.2 : 1.6) + (hasT('veil') ? 0.3 : 0) : 1;
     const clutchM = P.talents.has('clutch') && P.hp < P.maxHp * 0.25 ? 1.2 : 1;
     const d = hit.dmg * (behind ? 1.25 : 1) * (exposed ? 1.3 : 1) * (counter ? 1.3 : 1) * ambushM * clutchM * (resisted ? 0.55 : 1) * dropBonus * (P.str / 10) * (20 / (10 + e.def));
     if(e.dmgBy) e.dmgBy[cat] = (e.dmgBy[cat] || 0) + d;
@@ -2134,14 +2186,14 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const mashed = pressLog.some(f => f < P.linkFrame && f >= P.linkFrame - 10 && f > P.atkStartFrame + 1);
     const G = gearW();
     const ST = stanceOf();
-    P.perfect = id !== 'a1' && pf != null && pf - P.linkFrame >= 0 && pf - P.linkFrame <= 6 + (G.link || 0) + ST.link && !mashed;
+    P.perfect = id !== 'a1' && pf != null && pf - P.linkFrame >= 0 && pf - P.linkFrame <= 6 + (G.link || 0) + ST.link + (hasT('ribbon') ? 2 : 0) && !mashed;
     const s = Object.assign({}, base, P.perfect ? { startup:Math.max(3, base.startup - 3), total:base.total - 3 } : {});
     const w = woundP();
     const fm = (1 + 0.25 * w) * clamp(1 - (P.stats.spd - 10) * 0.012, 0.7, 1); // wounds slow you, SPD speeds you up
     if(fm !== 1){ s.startup = Math.max(3, Math.round(s.startup * fm)); s.total = Math.round(s.total * fm); s.lock = Math.round(s.lock * fm); }
     const spd = G.speed + ST.speed;
     if(spd){ s.startup = Math.max(3, s.startup + spd); s.total = Math.max(s.startup + 6, s.total + spd); s.lock = Math.max(4, s.lock + spd); }
-    s.range += G.range;
+    s.range += G.range + (hasT('piketip') ? 0.15 : 0);
     // stale moves: the same move over and over loses its bite
     P.recent = P.recent.filter(r => frameNo - r.f < 240);
     const n = P.recent.filter(r => r.id === id).length;
@@ -2160,11 +2212,11 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       const d = dist(P, lockT), gap = d - (s.range - 0.3);
       if(gap > 0 && d < 3.4){ const a = yawTo(P, lockT), k = clamp(gap * 0.05, 0, 0.08); P.kx += Math.sin(a) * k; P.kz += Math.cos(a) * k; }
     }
-    enemyReact(s.startup, id);
+    enemyReact(s.startup, id, P.deckPos === 'q1' ? 0.5 : 1);
   }
   function meleeHit(){
-    const mashed = pressLog.filter(f => frameNo - f < 60).length >= 5;
-    const G = gearW(), s = P.atk, mult = P.staleMult * (P.perfect ? (G.link ? 1.3 : 1.15) : 1) * (mashed ? 0.8 : 1);
+    const mashed = isMashing();
+    const G = gearW(), s = P.atk, mult = P.staleMult * (P.perfect ? (G.link ? 1.3 : 1.15) + (hasT('ribbon') ? 0.05 : 0) : 1) * (mashed ? 0.8 : 1);
     sfx('swing', (s.big ? 1.4 : 1) * (0.8 + 0.6 * weaponWeight()));
     P.kx += Math.sin(P.yaw) * 0.05; P.kz += Math.cos(P.yaw) * 0.05;
     let landed = false;
@@ -2184,7 +2236,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const d = skillDef(id);
     if(d.counterOnly && P.riposteT <= 0){ floatText(P.x, 2.3, P.z, 'NO OPENING', '#958ca8', 0.85); return false; }
     P.skill = { def:d, slot, phase:'pre', t:connect ? Math.ceil(d.pre / 2) : d.pre, hits:new Set(), hitT:0, landed:false, connected:!!connect };
-    P.skillCd[slot] = connect && d.linked ? Math.round(d.cd * 0.7) : d.cd; P.atkT = 0; P.parryT = 0; P.comboT = 0; P.riposteT = 0;
+    P.skillCd[slot] = Math.round((connect && d.linked ? d.cd * 0.7 : d.cd) * (hasT('thread') ? 0.9 : 1)); P.atkT = 0; P.parryT = 0; P.comboT = 0; P.riposteT = 0;
+    if(connect && hasT('cinders')){ P.hp = Math.min(P.maxHp, P.hp + P.maxHp * 0.03); floatText(P.x, 2.6, P.z, '+' + Math.round(P.maxHp * 0.03), '#7fe38a', 0.8); }
     PTRAIL.mesh.material.color.setHex(d.color);
     sfx('skill', slot === 'Q' ? 1 : 1.25);
     if(connect){ floatText(P.x, 2.45, P.z, 'SKILL CONNECT', '#ffffff', 1.15); screenFlash(0.12, d.hex); zoomPunch(4); impact(1); }
@@ -2296,7 +2349,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const fx = Math.sin(cam.yaw), fz = Math.cos(cam.yaw), rx = -Math.cos(cam.yaw), rz = Math.sin(cam.yaw);
     let mx = fx * iz + rx * ix, mz = fz * iz + rz * ix;
     const ml = Math.hypot(mx, mz); if(ml > 0){ mx /= ml; mz /= ml; }
-    const busy = P.dodgeT > 0 || P.stunT > 0 || P.drinkT > 0;
+    const busy = P.dodgeT > 0 || P.stunT > 0 || P.drinkT > 0 || P.useT > 0 || P.throwT > 0;
 
     if(lockT && lockT.alive) P.yaw = turnToward(P.yaw, yawTo(P, lockT), busy ? 0.05 : 0.3);
     else if(ml > 0 && !busy && P.atkT <= 0) P.yaw = turnToward(P.yaw, Math.atan2(mx, mz), 0.22);
@@ -2313,7 +2366,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
     if(has('dodge') && P.dodgeCd <= 0 && P.dodgeT <= 0 && P.stunT <= 0 && P.onGround && P.drinkT <= 0){
       take('dodge');
-      P.dodgeT = 18; P.dodgeCd = Math.round(Math.max(16, 38 - (P.stats.spd - 10) * 0.8 + gearA().rollCd + stanceOf().roll)); P.atkT = 0; P.parryT = 0;
+      P.dodgeT = 18; P.dodgeCd = Math.round(Math.max(16, 38 - (P.stats.spd - 10) * 0.8 + gearA().rollCd + stanceOf().roll - (P.buffs.draught > 0 ? 6 : 0))); P.atkT = 0; P.parryT = 0;
       if(ml > 0){ P.ddx = mx; P.ddz = mz; } else { P.ddx = -Math.sin(P.yaw); P.ddz = -Math.cos(P.yaw); }
       sfx('dodge'); dust(P.x, P.z, 5);
     }
@@ -2325,7 +2378,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
 
     P.blocking = guardHeld() && P.parryT <= 0 && P.dodgeT <= 0 && P.stunT <= 0 && P.atkT <= 0;
-    P.invuln = P.dodgeT > 6 - gearA().iframes - (P.talents.has('ghost') ? 2 : 0);
+    P.invuln = P.dodgeT > 6 - gearA().iframes - (P.talents.has('ghost') ? 2 : 0) - (hasT('veil') ? 1 : 0);
 
     let tvx = 0, tvz = 0;
     if(P.dodgeT > 0){
@@ -2336,7 +2389,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     } else {
       P.roll = 0;
       if(P.stunT <= 0){
-        const sp = 0.072 * spdMult() * (P.atkT > 0 ? 0.35 : 1) * (P.blocking ? 0.45 : 1) * (P.parryT > 0 ? 0.4 : 1) * (lockT ? 0.85 : 1) * (1 - 0.28 * woundP()) * (P.drinkT > 0 ? 0.3 : 1) * gearA().move * stanceOf().move * padMag();
+        const sp = 0.072 * spdMult() * (P.atkT > 0 ? 0.35 : 1) * (P.blocking ? 0.45 : 1) * (P.parryT > 0 ? 0.4 : 1) * (lockT ? 0.85 : 1) * (1 - 0.28 * woundP()) * (P.drinkT > 0 ? 0.3 : 1) * gearA().move * stanceOf().move * padMag() * (P.buffs.draught > 0 ? 1.12 : 1);
         tvx = mx * sp; tvz = mz * sp;
       }
       const r = P.onGround ? 0.22 : 0.08;
@@ -2538,7 +2591,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(!P.alive) return [Object.assign(b, { lean:-0.3, crouch:0.5, armUp:-0.6, ext:0.2 }), 0.15];
     if(BL){ const tr = Math.sin(frameNo * 0.9) * 0.025; const p = LOCK_POSE(1); p.armUp += tr; p.lean += BL.v * 0.08; return [Object.assign(b, p), 0.4]; }
     if(P.dodgeT > 0) return [Object.assign(b, { lean:0.5, crouch:0.8, tuck:0.9, armUp:-0.3, ext:0.2, stride:0 }), 0.5];
-    if(P.drinkT > 0) return [Object.assign(b, { lean:-0.15, crouch:0.16, armUp:-0.5, armYaw:0.6, ext:0.3, tilt:0.3, stride:0.1 }), 0.35];
+    if(P.drinkT > 0 || P.useT > 0) return [Object.assign(b, { lean:-0.15, crouch:0.16, armUp:-0.5, armYaw:0.6, ext:0.3, tilt:0.3, stride:0.1 }), 0.35];
+    // throwing a knife: the off hand whips forward
+    if(P.throwT > 0){ const k = P.throwT / 14; return [Object.assign(b, { lean:0.25, crouch:0.2, armUp:0.3, armYaw:0.9, ext:0.5, tilt:0.9, reach:k > 0.6 ? 0.2 : 1, stride:0.6 }), 0.6]; }
     if(P.skill){
       const S = P.skill, d = S.def;
       if(S.phase === 'pre'){ const tr = Math.sin(frameNo * 1.1) * 0.02; const pp = Object.assign({}, d.prePose); pp.armUp += tr; return [Object.assign(b, pp), 0.45]; }
@@ -2647,7 +2702,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     // blade glints softly while a pause-branch is available
     const branch = P.atkT <= 0 && P.comboT > 0 && P.lastMove && !MOVES[P.lastMove].end && P.sinceAtk >= 12;
     const skillLit = P.skill && P.skill.phase !== 'post';
-    setFlash(PR, P.flash, skillLit ? P.skill.def.color : P.parryT > 0 ? 0xffd166 : P.blocking ? 0x9fb4ff : branch ? 0xb08a3a : 0);
+    setFlash(PR, P.flash, skillLit ? P.skill.def.color : P.parryT > 0 ? 0xffd166 : P.blocking ? 0x9fb4ff : branch ? 0xb08a3a : P.buffs && P.buffs.whet > 0 ? 0x8a3a10 : 0);
     if(skillLit){ PR.tipMark.getWorldPosition(_v2); PR.midMark.getWorldPosition(_v1); emit(SPARKS, _v2.x, _v2.y, _v2.z, rand(-0.01, 0.01), rand(0, 0.02), rand(-0.01, 0.01), P.skill.def.hex, 18, 0, false); emit(SPARKS, _v1.x, _v1.y, _v1.z, rand(-0.01, 0.01), rand(0, 0.02), rand(-0.01, 0.01), P.skill.def.hex, 14, 0, false); }
     updateTrail(PTRAIL, PR, (P.atkT > 0 && P.atkT <= P.atkHitFrame + 1) || (P.skill && P.skill.phase === 'motion'), 9);
     for(const e of enemies){
@@ -2767,6 +2822,19 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const wv = woundP();
     $('wound').style.opacity = wv > 0 && P.alive ? (0.45 * wv * (0.72 + 0.28 * Math.sin(performance.now() * (0.006 + 0.007 * wv)))).toFixed(3) : 0;
     $('gold').textContent = P.gold;
+    if(frameNo % 4 === 0) renderBelt();
+    // combo pips: where you are in your string, and what a pause would do next
+    const inString = P.alive && (P.atkT > 0 || P.comboT > 0) && P.deckPos;
+    const pips = $('pips');
+    pips.style.opacity = inString ? 1 : 0;
+    if(inString){
+      const idx = { q1:0, q2:1, q3:2, p1:1, p2:2, drop:2 }[P.deckPos] || 0, alt = P.deckPos[0] === 'p' || P.deckPos === 'drop';
+      [...pips.children].slice(0, 3).forEach((p, i) => { p.className = i < idx ? 'on' : i === idx ? (alt ? 'alt' : 'on') : ''; });
+      const end = MOVES[P.lastMove] && MOVES[P.lastMove].end;
+      const nextP = P.deckPos === 'q1' ? 'p1' : P.deckPos === 'q2' ? 'p2' : null;
+      const txt = end ? 'string done' : MOVES[P.lastMove] && MOVES[P.lastMove].follow ? 'click → Falling Cut' : nextP ? 'pause → ' + CARDS[P.deck[nextP]].name : '';
+      if($('pipNext').textContent !== txt) $('pipNext').textContent = txt;
+    }
     const t = (lockT && lockT.alive) ? lockT : enemies.find(e => e.alive && !e.idle && dist(e, P) < 16);
     const tp = $('target');
     if(t){
@@ -3372,6 +3440,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       forgeL.intensity = 1.4 + Math.sin(t * 9) * 0.15;
     });
     A.inter.push({ x:bx, z:bz, r:2.8, verb:'Talk to Bram, the smith', icon:'smith', act:() => openMenu('smith') });
+    A.fireSpots = [{ x:kx, z:kz }];
     A.labels.push(label('Bram · Smith', bx, 2.6, bz, 16));
     // bounty board
     const brd = new THREE.Group(); brd.position.set(-10, 0, 3); brd.rotation.y = Math.atan2(10, -3); G.add(brd);
@@ -3457,7 +3526,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(id === 'wilds') scatterTufts(G, Math.round(5000 * QL().detail), free, R, [0x46583a, 0x3a4a30, 0x55603e, 0x6a6a48]);
     if(id === 'rime'){
       const mounds = [];
-      for(let i = 0; i < 2000 && mounds.length < 140; i++){ const x = -55 + R() * 110, z = -57 + R() * 114; if(free(x, z, 0.5)) mounds.push({ x, z, s:0.8 + R() * 1.8 }); }
+      for(let i = 0; i < 2000 && mounds.length < Math.round(140 * QL().detail) + 20; i++){ const x = -55 + R() * 110, z = -57 + R() * 114; if(free(x, z, 0.5)) mounds.push({ x, z, s:0.8 + R() * 1.8 }); }
       const mm = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 6, 0, TAU, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color:0xdde6ef, roughness:0.7 }), mounds.length);
       mounds.forEach((k, i) => { M4.compose(V.set(k.x, -0.05, k.z), Q.setFromAxisAngle(_up, R() * TAU), S3.set(k.s * 1.6, k.s * 0.32, k.s)); mm.setMatrixAt(i, M4); });
       mm.receiveShadow = true; mm.castShadow = true; mm.frustumCulled = false; G.add(mm);
@@ -3599,6 +3668,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
         snow.position.set(P.x, 0, P.z); geo.attributes.position.needsUpdate = true;
       });
     }
+    A.fireSpots = fires;
     // only the fires nearest you get a real light
     const pool = [];
     for(let i = 0; i < 4; i++){ const L = new THREE.PointLight(0xff9a50, 1.6, 15, 2); G.add(L); pool.push(L); }
@@ -3631,7 +3701,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     })(G);
   }
   function enterArea(id, at){
-    clearField(); for(const c of allCamps()) c.live = [];
+    clearField(); for(const c of allCamps()) c.live = []; clearLoot();
     for(const f of floats) f.el.remove(); floats.length = 0;
     if(!WORLD_GROUPS[id]){ WORLD_GROUPS[id] = id === 'town' ? buildTown() : buildRegion(id); questProps(id); freezeStatic(WORLD_GROUPS[id]); }
     for(const k of REGION_IDS){ AREAS[k].seal = null; if(AREAS[k].sealMesh) AREAS[k].sealMesh.visible = false; }
@@ -3738,8 +3808,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
   }
   function worldKill(e){
-    const g = (GOLD[e.type] || 0) * (e.elite ? 3 : 1);
+    const g = Math.round((GOLD[e.type] || 0) * (e.elite ? 3 : 1) * (hasT('seal') ? 1.15 : 1));
     if(g){ P.gold += g; const c = chestOf(e); floatText(c.x, c.y + 0.9, c.z, '+' + g + ' gold', '#ffd166', 1); }
+    rollLoot(e);
     bountyNote('kill', e.type);
     if(e.elite){ bountyNote('elite'); lootDrop('the ' + e.name); if(e.camp) e.camp.eliteType = null; }
     if(e.camp){
@@ -3862,7 +3933,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 
   // ----- shrines, bounties -----
   function rest(where){
-    P.hp = P.maxHp; P.flasks = 3; P.posture = 0; W.respawn = where;
+    P.hp = P.maxHp; P.flasks = flaskCap(); P.posture = 0; W.respawn = where;
     const region = AREA.id !== 'town';
     if(region){ despawn(enemies.filter(e => !e.sealed)); resetCamps(AREA.id); rivalMet = {}; }
     sfx('learn'); sfx('healed');
@@ -3911,7 +3982,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(menuOpen === 'talk'){ renderTalk(list); return; }
     if(menuOpen === 'smith'){
       $('menuTitle').textContent = 'Bram\'s Forge';
-      $('menuSub').textContent = 'Bram doesn\'t look up from the anvil. "Gold first. And don\'t blame the blade when you whiff."';
+      $('menuSub').textContent = 'Bram doesn\'t look up from the anvil. "Gold first. Bring me scrap and shards and I\'ll sharpen what you\'ve got. And don\'t blame the blade when you whiff."';
+      const mats = document.createElement('div'); mats.className = 'goldline'; mats.style.fontSize = '12px';
+      mats.textContent = Object.keys(MATS).map(k => MATS[k].name + ' ' + (P.inv.mats[k] || 0)).join(' · '); list.append(mats);
       for(const [title, table, kind] of [['Weapons', WEAPONS, 'w'], ['Armor', ARMORS, 'a']]){
         const h = document.createElement('div'); h.className = 'sect'; h.textContent = title; list.append(h);
         const grid = document.createElement('div'); grid.className = 'sk'; list.append(grid);
@@ -3979,7 +4052,26 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       b.textContent = 'Buy · ' + g.price + ' gold'; b.disabled = P.gold < g.price;
       b.addEventListener('click', () => { if(P.gold < g.price) return; P.gold -= g.price; P.owned.add(id); P.gear[slot] = id; applyGear(); sfx('learn'); renderMenu(); });
     }
-    btns.append(b); card.append(btns); grid.append(card);
+    btns.append(b);
+    // upgrades: gold plus materials, +6% damage and posture damage per level, up to +5
+    if(kind === 'w' && owned){
+      const lv = (P.upg[id] || 0), next = UPGRADE_COST[lv + 1];
+      if(lv) h3.textContent = g.name + ' +' + lv;
+      const u = document.createElement('button'); u.type = 'button';
+      if(!next){ u.textContent = 'Fully upgraded'; u.disabled = true; }
+      else {
+        const parts = ['gold', 'iron', 'rime', 'cinder'].filter(k => next[k]).map(k => next[k] + ' ' + (k === 'gold' ? 'gold' : MATS[k].name));
+        const can = P.gold >= next.gold && ['iron', 'rime', 'cinder'].every(k => (P.inv.mats[k] || 0) >= (next[k] || 0));
+        u.textContent = 'Upgrade to +' + (lv + 1) + ' · ' + parts.join(', '); u.disabled = !can;
+        u.addEventListener('click', () => {
+          if(!can) return;
+          P.gold -= next.gold; for(const k of ['iron', 'rime', 'cinder']) if(next[k]) P.inv.mats[k] -= next[k];
+          P.upg[id] = lv + 1; sfx('clang', 1, 1.4); sfx('learn'); renderMenu();
+        });
+      }
+      btns.append(u);
+    }
+    card.append(btns); grid.append(card);
   }
   function applyGear(){
     const g = gearW(), R = PR, s = R.s, len = g.len, k = len / R.L0;
@@ -3997,6 +4089,174 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const ax = !!g.axe;
     R.bladeM.visible = R.tipM.visible = R.fullerM.visible = !ax; R.axeParts.shaft.visible = R.axeParts.head.visible = ax;
     if(ax){ R.axeParts.shaft.scale.y = len * 0.95; R.axeParts.shaft.position.z = len * 0.47 + 0.06; R.axeParts.head.position.set(0, 0.12, len * 0.86); }
+  }
+
+  // ----- loot: things enemies drop, lying on the ground until you walk over them -----
+  const MATS = {
+    iron:   { name:'Iron Scrap', color:0xc8d0d8, hex:'#c8d0d8' },
+    rime:   { name:'Rimesteel Shard', color:0x9fe8ff, hex:'#9fe8ff' },
+    cinder: { name:'Cinder Core', color:0xff8a3a, hex:'#ff8a3a' }
+  };
+  const ITEMS = {
+    knife:   { name:'Throwing Knife', short:'Knife', color:0xd8e0f0, hex:'#d8e0f0', max:12, desc:'Throw it at an enemy mid-windup to interrupt a light attack. Heavies and armored enemies shrug it off.' },
+    whet:    { name:'Whetstone', short:'Whet', color:0xffb070, hex:'#ffb070', max:5, dur:2700, desc:'+20% damage for 45 seconds.' },
+    tonic:   { name:'Iron Tonic', short:'Tonic', color:0x9fb4ff, hex:'#9fb4ff', max:5, dur:2700, desc:'Blocking drains 40% less guard for 45 seconds.' },
+    draught: { name:'Swift Draught', short:'Swift', color:0x7fe38a, hex:'#7fe38a', max:5, dur:1800, desc:'Move 12% faster and roll more often for 30 seconds.' }
+  };
+  const BELT = ['knife', 'whet', 'tonic', 'draught'];
+  // every enemy type has its own trinket. Rare from normal enemies, likely from elites, guaranteed from bosses
+  const TRINKETS = {
+    crest:   { name:'Knight\'s Crest', from:'knight', desc:'+3 DEF.' },
+    ribbon:  { name:'Duelist\'s Ribbon', from:'duelist', desc:'Perfect links are 2 frames easier and hit 5% harder.' },
+    rivet:   { name:'Bulwark Rivet', from:'shield', desc:'Blocking drains 15% less guard.' },
+    piketip: { name:'Pike Tip', from:'spear', desc:'+0.15m reach on your swings.' },
+    veil:    { name:'Shade Veil', from:'assassin', desc:'+1 roll invincibility frame, and ambushes hit harder.' },
+    knuckle: { name:'Brute\'s Knuckle', from:'brute', desc:'+12% posture damage.' },
+    seal:    { name:'Captain\'s Seal', from:'captain', desc:'+15% gold from every source.' },
+    thread:  { name:'Reaver\'s Thread', from:'reaver', desc:'Sword skill cooldowns 10% shorter.' },
+    plate:   { name:'Sentinel Plate', from:'sentinel', desc:'Heavy hits deal 12% less to you.' },
+    brand:   { name:'Zealot\'s Brand', from:'zealot', desc:'+15% damage while you\'re below half HP.' },
+    mark:    { name:'Headsman\'s Mark', from:'executioner', desc:'Deathblows hit 20% harder.' },
+    ember:   { name:'Warden\'s Ember', from:'ashWarden', boss:true, desc:'Deathblows heal you 4%.' },
+    heart:   { name:'Rime Heart', from:'rimeKing', boss:true, desc:'Deflects deal 8 extra posture damage.' },
+    cinders: { name:'Twin Cinders', from:'emberTwin', boss:true, desc:'Chaining one skill into another heals you 3%.' }
+  };
+  const TRINKET_OF = {}; for(const id in TRINKETS) TRINKET_OF[TRINKETS[id].from] = id;
+  TRINKET_OF.ashTwin = 'cinders';
+  const hasT = id => !!(P.trinkets && P.trinkets.includes(id));
+  const UPGRADE_COST = [null, { gold:80, iron:3 }, { gold:160, iron:5 }, { gold:260, iron:4, rime:3 }, { gold:380, rime:6 }, { gold:520, rime:4, cinder:4 }];
+  const upgLv = () => (P.upg && P.upg[P.gear.weapon]) || 0;
+  const upgM = () => 1 + 0.06 * upgLv();
+  const flaskCap = () => P.flaskMax || 3;
+  function resetInventory(){
+    P.inv = { mats:{ iron:0, rime:0, cinder:0 }, items:{ knife:3, whet:0, tonic:0, draught:0 } };
+    P.upg = {}; P.trinketsOwned = new Set(); P.trinkets = [null, null]; P.flaskMax = 3; P.shards = 0;
+    P.buffs = { whet:0, tonic:0, draught:0 }; P.beltSel = 0;
+  }
+  resetInventory();
+  const lootGeo = { mat:new THREE.BoxGeometry(0.16, 0.16, 0.16), item:new THREE.CylinderGeometry(0.06, 0.08, 0.2, 8), shard:new THREE.OctahedronGeometry(0.12, 0),
+    gold:new THREE.SphereGeometry(0.11, 10, 8), trinket:new THREE.OctahedronGeometry(0.16, 0), beam:new THREE.CylinderGeometry(0.05, 0.12, 2.4, 8, 1, true) };
+  const lootMats = {};
+  const lootMat = (c, glow) => lootMats[c + '/' + glow] || (lootMats[c + '/' + glow] = new THREE.MeshStandardMaterial({ color:c, emissive:c, emissiveIntensity:glow, roughness:0.35, metalness:0.5 }));
+  const beamMat = c => lootMats['beam' + c] || (lootMats['beam' + c] = new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:0.35, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+  const loot = [];
+  function dropLoot(x, z, kind, id, n){
+    const color = kind === 'mat' ? MATS[id].color : kind === 'item' ? ITEMS[id].color : kind === 'shard' ? 0xffb8d8 : kind === 'gold' ? 0xffd166 : 0xc78dff;
+    const m = new THREE.Mesh(lootGeo[kind], lootMat(color, kind === 'trinket' || kind === 'shard' ? 1.4 : 0.6)); m.castShadow = true; scene.add(m);
+    let beam = null;
+    // rare things get a pillar of light so you can find them after a fight
+    if(kind === 'trinket' || kind === 'shard'){ beam = new THREE.Mesh(lootGeo.beam, beamMat(color)); scene.add(beam); }
+    const a = rand(0, TAU), sp = rand(0.03, 0.07);
+    loot.push({ m, beam, kind, id, n, x, y:1.1, z, vx:Math.sin(a) * sp, vy:rand(0.07, 0.11), vz:Math.cos(a) * sp, age:0, seed:rand(0, 10) });
+    if(loot.length > 60){ const o = loot.shift(); scene.remove(o.m); if(o.beam) scene.remove(o.beam); }
+  }
+  function clearLoot(){ for(const o of loot){ scene.remove(o.m); if(o.beam) scene.remove(o.beam); } loot.length = 0; for(const k of knives) scene.remove(k.mesh); knives.length = 0; }
+  function rollLoot(e){
+    if(e.spar) return;
+    const floor = AREA.id === 'cinder' ? 3 : AREA.id === 'rime' ? 2 : 1, el = !!e.elite, boss = !!e.T.floorBoss, R = Math.random;
+    const out = [], mat = floor === 3 ? 'cinder' : floor === 2 ? 'rime' : 'iron';
+    if(boss || el || R() < 0.7) out.push(['mat', mat, boss ? 6 : el ? 3 + (R() * 3 | 0) : 1 + (R() < 0.3 ? 1 : 0)]);
+    if(floor > 1 && R() < 0.35) out.push(['mat', floor === 3 ? 'rime' : 'iron', 1 + (R() * 2 | 0)]);
+    if(R() < (boss ? 1 : el ? 0.8 : 0.22)){ const r = R(), id = r < 0.4 ? 'knife' : r < 0.6 ? 'whet' : r < 0.8 ? 'tonic' : 'draught'; out.push(['item', id, id === 'knife' ? 2 + (R() * 2 | 0) : 1]); }
+    if(R() < (boss ? 1 : el ? 0.3 : 0.04)) out.push(['shard', 'shard', 1]);
+    if(R() < (el ? 0.6 : boss ? 1 : 0.12)) out.push(['gold', 'gold', (15 + (R() * 35 | 0)) * floor * (boss ? 4 : 1)]);
+    const t = TRINKET_OF[e.type];
+    if(t && !P.trinketsOwned.has(t) && !loot.some(o => o.id === t) && (boss || R() < (el ? 0.35 : 0.06))) out.push(['trinket', t, 1]);
+    const c = chestOf(e);
+    for(const [kind, id, n] of out) dropLoot(e.x, e.z, kind, id, n);
+    if(out.length) sfx('loot');
+  }
+  function pickUp(o){
+    let txt = '', col = '#ffffff';
+    if(o.kind === 'mat'){ P.inv.mats[o.id] = (P.inv.mats[o.id] || 0) + o.n; txt = '+' + o.n + ' ' + MATS[o.id].name; col = MATS[o.id].hex; }
+    else if(o.kind === 'item'){ const I = ITEMS[o.id]; P.inv.items[o.id] = Math.min(I.max, (P.inv.items[o.id] || 0) + o.n); txt = '+' + o.n + ' ' + I.name; col = I.hex; }
+    else if(o.kind === 'gold'){ const g = Math.round(o.n * (hasT('seal') ? 1.15 : 1)); P.gold += g; txt = '+' + g + ' gold'; col = '#ffd166'; }
+    else if(o.kind === 'shard'){
+      P.shards++;
+      if(P.shards >= 3 && flaskCap() < 6){ P.shards -= 3; P.flaskMax = flaskCap() + 1; P.flasks = Math.min(flaskCap(), P.flasks + 1); showBanner('FLASK EXPANDED', 'you can carry ' + P.flaskMax + ' flasks now'); sfx('learn'); }
+      else { txt = 'Flask shard ' + Math.min(P.shards, 3) + '/3'; col = '#ffb8d8'; }
+    }
+    else if(o.kind === 'trinket'){
+      P.trinketsOwned.add(o.id); sfx('learn');
+      const free = P.trinkets.indexOf(null);
+      if(free >= 0) P.trinkets[free] = o.id;
+      showBanner('TRINKET: ' + TRINKETS[o.id].name.toUpperCase(), TRINKETS[o.id].desc + (free >= 0 ? ' · equipped' : ' · swap it in from your loadout (K)'));
+    }
+    if(txt) floatText(P.x, 2.3 + Math.random() * 0.3, P.z, txt, col, 0.9);
+    sfx('pickup', o.kind === 'trinket' ? 1.5 : 1);
+  }
+  function updateLoot(){
+    for(let i = loot.length - 1; i >= 0; i--){
+      const o = loot[i]; o.age++;
+      if(o.y > 0.25 || o.vy > 0){ o.vy -= 0.006; o.x += o.vx; o.y += o.vy; o.z += o.vz; if(o.y <= 0.25){ o.y = 0.25; o.vy = o.vy < -0.03 ? -o.vy * 0.35 : 0; o.vx *= 0.5; o.vz *= 0.5; } }
+      // never let loot land inside a wall, tent or rock where you can't reach it
+      if(o.age % 6 === 0){ o.radius = 0.2; confine(o); }
+      const d = Math.hypot(P.x - o.x, P.z - o.z);
+      // after it lands, it drifts toward you when you're close
+      if(P.alive && o.age > 30 && d < 3.5){ o.x += (P.x - o.x) * 0.14; o.z += (P.z - o.z) * 0.14; }
+      if(P.alive && o.age > 20 && d < 0.7){ pickUp(o); scene.remove(o.m); if(o.beam) scene.remove(o.beam); loot.splice(i, 1); continue; }
+      if(o.age > 5400){ scene.remove(o.m); if(o.beam) scene.remove(o.beam); loot.splice(i, 1); continue; }
+      const bob = o.vy === 0 ? Math.sin(frameNo * 0.08 + o.seed) * 0.06 : 0;
+      o.m.position.set(o.x, o.y + bob, o.z); o.m.rotation.y += 0.05;
+      if(o.beam){ o.beam.position.set(o.x, 1.2, o.z); o.beam.material.opacity = 0.25 + Math.sin(frameNo * 0.1 + o.seed) * 0.1; }
+    }
+  }
+  // ----- the belt: consumables on 1-4 -----
+  const knives = [];
+  const knifeGeo = new THREE.BoxGeometry(0.03, 0.012, 0.32), knifeMat = new THREE.MeshStandardMaterial({ color:0xe0e8f0, metalness:0.9, roughness:0.2, emissive:0x404850 });
+  function useItem(id){
+    if(mode !== 'world' || !P.alive || paused) return;
+    const I = ITEMS[id];
+    if(!(P.inv.items[id] > 0)){ floatText(P.x, 2.2, P.z, 'NO ' + I.name.toUpperCase() + 'S', '#958ca8', 0.85); return; }
+    if(P.atkT > 0 || P.skill || P.stunT > 0 || P.dodgeT > 0 || P.drinkT > 0 || BL || (P.throwT || 0) > 0 || (P.useT || 0) > 0) return;
+    P.inv.items[id]--;
+    if(id === 'knife'){
+      const tgt = lockT && lockT.alive ? lockT : null, yaw = tgt ? yawTo(P, tgt) : P.yaw;
+      P.yaw = yaw; P.throwT = 14;
+      const mesh = new THREE.Mesh(knifeGeo, knifeMat); scene.add(mesh);
+      knives.push({ mesh, x:P.x + Math.sin(yaw) * 0.5, y:1.35, z:P.z + Math.cos(yaw) * 0.5, vx:Math.sin(yaw) * 0.5, vz:Math.cos(yaw) * 0.5, yaw, life:26 });
+      sfx('swing', 0.55); return;
+    }
+    P.useT = 18; P.buffs[id] = I.dur; sfx('drink');
+    setTimeout(() => sfx('healed'), 250);
+    floatText(P.x, 2.3, P.z, I.name.toUpperCase(), I.hex, 1);
+  }
+  function updateKnives(){
+    for(let i = knives.length - 1; i >= 0; i--){
+      const k = knives[i]; k.life--;
+      k.x += k.vx; k.z += k.vz; k.mesh.position.set(k.x, k.y, k.z); k.mesh.rotation.set(0, k.yaw, 0); k.mesh.rotateX(frameNo * 0.6);
+      emit(SPARKS, k.x, k.y, k.z, 0, 0, 0, '#cfd8ff', 6, 0, false);
+      let hit = null;
+      for(const e of enemies){ if(!e.alive) continue; if(Math.hypot(e.x - k.x, e.z - k.z) < e.radius + 0.3){ hit = e; break; } }
+      if(hit){
+        const c = chestOf(hit); sparkBurst(c.x, c.y, c.z, '#ffffff', 10, 0.08); sfx('hit', 0.6);
+        playerHits(hit, { dmg:5, post:6, knife:true });
+        scene.remove(k.mesh); knives.splice(i, 1); continue;
+      }
+      if(k.life <= 0){ scene.remove(k.mesh); knives.splice(i, 1); }
+    }
+  }
+  function updateBuffs(){
+    for(const k in P.buffs) if(P.buffs[k] > 0){ P.buffs[k]--; if(P.buffs[k] === 0) floatText(P.x, 2.2, P.z, ITEMS[k].name + ' wore off', '#958ca8', 0.8); }
+    if(P.throwT > 0) P.throwT--; if(P.useT > 0) P.useT--;
+  }
+  function renderBelt(){
+    const el = $('belt'); el.hidden = mode !== 'world';
+    if(el.hidden) return;
+    if(el.children.length !== BELT.length){
+      el.innerHTML = '';
+      for(const id of BELT){ const d = document.createElement('div'); d.className = 'bs panel'; d.innerHTML = '<b></b><em></em><span></span><i class="bt"></i>'; el.append(d); }
+    }
+    BELT.forEach((id, i) => {
+      const d = el.children[i], n = P.inv.items[id] || 0, buff = ITEMS[id].dur ? P.buffs[id] / ITEMS[id].dur : 0;
+      const key = PAD.on ? (i === P.beltSel ? 'D↑' : '') : keyName(SET.bind['item' + (i + 1)]);
+      if(d.children[0].textContent !== key) d.children[0].textContent = key;
+      if(d.children[1].textContent !== String(n)) d.children[1].textContent = n;
+      if(d.children[2].textContent !== ITEMS[id].short) d.children[2].textContent = ITEMS[id].short;
+      d.classList.toggle('empty', n === 0 && !buff);
+      d.classList.toggle('sel', PAD.on && i === P.beltSel);
+      d.children[3].style.transform = 'scaleX(' + clamp(buff, 0, 1) + ')';
+    });
   }
 
   // ----- the practice ring in Emberhold: test your deck and mantras without risking anything -----
@@ -4174,7 +4434,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(mode !== 'world' || !started) return;
     const S = { v:1, stats:P.stats, xp:P.xp, mastery:P.mastery, unlocked:[...P.unlocked], loadout:P.loadout, deflects:P.deflects, learnProg:P.learnProg,
       gold:P.gold, gear:P.gear, owned:[...P.owned], kills, deaths, world:W, hints:hintsSeen, seen,
-      deck:P.deck, cards:[...P.cards], mantras:P.mantras, mantraOwned:[...P.mantraOwned], talents:[...P.talents], tc:P.tc };
+      deck:P.deck, cards:[...P.cards], mantras:P.mantras, mantraOwned:[...P.mantraOwned], talents:[...P.talents], tc:P.tc,
+      inv:P.inv, upg:P.upg, trinketsOwned:[...P.trinketsOwned], trinkets:P.trinkets, flaskMax:P.flaskMax, shards:P.shards };
     try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(err){}
   }
   addEventListener('visibilitychange', () => { if(document.hidden) saveGame(); });
@@ -4185,7 +4446,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     Object.assign(P.stats, BASE); for(const k in P.xp) P.xp[k] = 0;
     P.mastery = {}; P.unlocked = new Set(['rush','fangs']); P.loadout = { Q:'rush', E:'fangs' }; P.learnProg = {}; P.deflects = 0;
     P.gold = 0; P.gear = { weapon:'arming', armor:'coat' }; P.owned = new Set(['arming','coat']); kills = 0; deaths = 0;
-    resetBuild();
+    resetBuild(); resetInventory();
     Object.assign(W, { respawn:'town', rivals:{ vesk:newRivalState(), gorrun:newRivalState() }, warden:false, rimeKing:false, twins:false, rematch:{}, quests:{}, bounties:[], stain:null, camps:0 });
     if(S){
       if(S.stats) Object.assign(P.stats, S.stats);
@@ -4213,13 +4474,19 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       if(S.mantras) for(const k in S.mantras) if(SKILLS[k] && P.mantraOwned.has(S.mantras[k])) P.mantras[k] = S.mantras[k];
       if(S.talents) P.talents = new Set(S.talents.filter(t => TALENTS[t]));
       if(S.tc) Object.assign(P.tc, S.tc);
+      if(S.inv){ Object.assign(P.inv.mats, S.inv.mats || {}); Object.assign(P.inv.items, S.inv.items || {}); }
+      if(S.upg) P.upg = S.upg;
+      if(S.trinketsOwned) P.trinketsOwned = new Set(S.trinketsOwned.filter(t => TRINKETS[t]));
+      if(S.trinkets) P.trinkets = S.trinkets.slice(0, 2).map(t => t && P.trinketsOwned.has(t) ? t : null);
+      while(P.trinkets.length < 2) P.trinkets.push(null);
+      P.flaskMax = clamp(S.flaskMax || 3, 3, 6); P.shards = S.shards || 0;
     }
     W.bounties = (W.bounties || []).filter(b => BOUNTIES[b.id]);
     while(W.bounties.length < 3) W.bounties.push(W.bounties.length ? newBounty() : { id:'knights', prog:0 });
     applyGear();
     $('goldWrap').hidden = false; $('minimap').hidden = false; document.querySelector('.tr').style.display = 'none';
     if(!stainMesh) makeStainMesh();
-    P.hp = P.maxHp; P.flasks = 3;
+    P.hp = P.maxHp; P.flasks = flaskCap();
     spawnAtRespawn(); updateQuestHud();
     if(!S) log('Emberhold: the last safe town on Floor 1. See Bram the smith, check the bounty board, then take the north gate into the Wilds.', 'tip', 10000);
     else log('Welcome back. Gold ' + P.gold + ' · ' + (W.twins ? 'Floor 3 cleared' : W.rimeKing ? 'Floor 2 cleared, Cinderfall is open' : W.warden ? 'Floor 1 cleared, the Rime Pass is open' : 'the Warden still waits'), 'tip', 5000);
@@ -4234,7 +4501,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       (old ? ' The ' + old + ' gold you dropped before is gone for good.' : '') + ' Your stats and skills stay.</p><p>Press R to wake at ' + where + '.</p>';
   }
   function worldRespawn(){
-    Object.assign(P, { alive:true, stunT:0, atkT:0, parryT:0, dodgeT:0, combo:0, armRecoil:0, skill:null, skillCd:{ Q:0, E:0 }, posture:0, flasks:3, drinkT:0, vy:0, y:0 });
+    Object.assign(P, { alive:true, stunT:0, atkT:0, parryT:0, dodgeT:0, combo:0, armRecoil:0, skill:null, skillCd:{ Q:0, E:0 }, posture:0, flasks:flaskCap(), drinkT:0, vy:0, y:0 });
     P.hp = P.maxHp; rivalMet = {};
     spawnAtRespawn();
   }
@@ -4242,6 +4509,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   // ----- per-step world logic and per-frame world visuals -----
   function updateWorld(){
     if(!AREA) return;
+    updateLoot(); updateKnives(); updateBuffs();
     if(worldT){
       worldT--;
       if(worldT === 24){
@@ -4355,6 +4623,28 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       l.append(mkSelect(cardOpts, P.deck[slot], v => { P.deck[slot] = v; P.comboT = 0; renderLoadout(); }), sm);
       deck.append(l);
     }
+    // trinkets: two slots, pick from what you've found
+    const trl = $('trinketList'); trl.innerHTML = '';
+    const owned = [...P.trinketsOwned];
+    for(let i = 0; i < 2; i++){
+      const l = document.createElement('label'); l.className = 'panel'; l.append('Trinket ' + (i + 1));
+      const cur = P.trinkets[i];
+      const opts = [['', owned.length ? 'Empty' : 'None found yet'], ...owned.filter(t => t === cur || !P.trinkets.includes(t)).map(t => [t, TRINKETS[t].name])];
+      const sm = document.createElement('small'); sm.textContent = cur ? TRINKETS[cur].desc : 'Kill enemies to find trinkets.';
+      l.append(mkSelect(opts, cur || '', v => { P.trinkets[i] = v || null; renderLoadout(); }), sm);
+      trl.append(l);
+    }
+    // pouch: materials, consumables, flask shards
+    const pl = $('pouchList'); pl.innerHTML = '';
+    const pouchCard = (title, lines, color) => {
+      const c = document.createElement('div'); c.className = 'skc panel'; c.style.setProperty('--c', color);
+      const h = document.createElement('h3'); h.textContent = title; c.append(h);
+      for(const t of lines){ const p = document.createElement('p'); p.textContent = t; c.append(p); }
+      pl.append(c);
+    };
+    pouchCard('Materials', Object.keys(MATS).map(k => MATS[k].name + ': ' + (P.inv.mats[k] || 0)).concat(['Bram uses these to upgrade weapons.']), '#c8d0d8');
+    pouchCard('Belt', BELT.map((k, i) => keyName(SET.bind['item' + (i + 1)]) + ' · ' + ITEMS[k].name + ' ×' + (P.inv.items[k] || 0) + ': ' + ITEMS[k].desc), '#ffb070');
+    pouchCard('Flasks', ['Carry ' + flaskCap() + ' flasks (max 6).', 'Flask shards: ' + P.shards + '/3. Three shards add a flask.'], '#ffb8d8');
     // talents
     const tl = $('talentList'); tl.innerHTML = '';
     for(const id in TALENTS){
@@ -4568,7 +4858,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       render(){ updateCamera(); placeSky(); renderFrame(); updateHud(); }, get kills(){ return kills; },
       startMode, handleR, get roomIdx(){ return roomIdx; }, get roomState(){ return roomState; }, get runOver(){ return runOver; }, get deaths(){ return deaths; },
       get AREA(){ return AREA; }, W, CAMPS, enterArea, travel, rest, tryInteract, openMenu, closeMenu, get menuOpen(){ return menuOpen; }, applyGear, saveGame, readSave, BOSS_C, RIVAL_SPOTS, SHRINE_W, worldFrame, get worldT(){ return worldT; },
-      AREAS, RIVALS, lootDrop, talentNote, pollPad, startSpar, endSpar, get sparring(){ return sparring; }, openTalk, qs, questAdvance, PAD, SET, cycleStance, startRematch, applySettings, openSettings, closeSettings, get settingsOpen(){ return settingsOpen; }, get composer(){ return composer; }, renderer, scene, resetCamps, makeElite, renderLoadout, toggleLoadout, skillDef, MOVES, get camPullK(){ return camPullK; } };
+      AREAS, RIVALS, lootDrop, talentNote, pollPad, useItem, rollLoot, dropLoot, get loot(){ return loot; }, get knives(){ return knives; }, ITEMS, TRINKETS, upgM, startSpar, endSpar, get sparring(){ return sparring; }, openTalk, qs, questAdvance, PAD, SET, cycleStance, startRematch, applySettings, openSettings, closeSettings, get settingsOpen(){ return settingsOpen; }, get composer(){ return composer; }, renderer, scene, resetCamps, makeElite, renderLoadout, toggleLoadout, skillDef, MOVES, get camPullK(){ return camPullK; } };
   }
 
   setTheme(0);
