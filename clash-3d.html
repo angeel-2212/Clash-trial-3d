@@ -102,6 +102,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 .card .lines{display:grid;grid-template-columns:auto auto;justify-content:center;gap:4px 18px;font-size:14px;font-variant-numeric:tabular-nums}
 .card .lines span:nth-child(odd){color:var(--muted);text-align:right}
 .card .lost{color:var(--lose)}
+.card .recap{background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:8px;padding:10px 12px;color:var(--fg);text-align:left}
+.card .recap b{color:var(--lose)}
+.card .recap span{color:var(--muted);font-size:13px}
 .card .newgame{background:transparent;color:var(--muted);border:1px solid var(--line);font-size:12px;font-weight:500;padding:6px 12px}
 .card .newgame.armed{color:var(--lose);border-color:var(--lose)}
 .mm{position:fixed;top:calc(14px + env(safe-area-inset-top,0px));right:16px;width:180px;height:180px;padding:0;pointer-events:none}
@@ -113,6 +116,31 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 .pbar{height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
 .pbar i{display:block;height:100%;background:var(--guard)}
 .goldline{font-family:var(--display);letter-spacing:.12em;color:var(--guard);text-align:center;font-size:14px}
+.tabs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.tabs button{appearance:none;font:inherit;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:rgba(255,255,255,0.05);border:1px solid var(--line);border-radius:6px;padding:6px 14px;cursor:pointer}
+.tabs button[aria-selected=true]{color:#14111a;background:var(--guard)}
+.tabs button:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.pausebtns{display:flex;flex-direction:column;gap:8px}
+.pausebtns button{appearance:none;font:inherit;font-weight:600;color:var(--fg);background:rgba(255,255,255,0.08);border:1px solid var(--line);border-radius:8px;padding:10px 18px;cursor:pointer}
+.pausebtns button:hover{background:rgba(255,255,255,0.14)}
+.pausebtns button.armed{border-color:var(--lose);color:var(--lose)}
+.pausebtns button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.mapwrap{padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px;max-height:calc(100vh - 32px);max-width:calc(100vw - 32px)}
+.mapwrap h2{font-family:var(--display);letter-spacing:.18em;margin:0;font-size:20px}
+#bigmap{width:min(78vh, calc(100vw - 64px));height:min(78vh, calc(100vw - 64px));border-radius:8px;background:rgba(10,8,14,0.6)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+.slotcard{padding:12px 14px;display:flex;flex-direction:column;gap:6px;text-align:left}
+.slotcard h3{margin:0;font-family:var(--display);font-size:15px;letter-spacing:.08em}
+.slotcard p{margin:0;font-size:12.5px;color:var(--muted)}
+.slotcard .btns{display:flex;gap:6px;flex-wrap:wrap}
+.slotcard button{appearance:none;font:inherit;font-size:12px;font-weight:600;color:var(--fg);background:rgba(255,255,255,0.08);border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer}
+.slotcard button.main{background:var(--guard);color:#14111a;border-color:transparent}
+.slotcard button.armed{border-color:var(--lose);color:var(--lose)}
+.statgrid{display:grid;grid-template-columns:auto 1fr auto;gap:6px 14px;font-size:13px;align-items:center}
+.statgrid span:nth-child(3n+1){color:var(--muted)}
+.statgrid span:nth-child(3n){text-align:right;font-variant-numeric:tabular-nums;color:var(--fg);font-weight:600}
+.clock{font-size:11px;letter-spacing:.06em;color:var(--muted)}
 .pips{position:fixed;left:50%;bottom:calc(88px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);display:flex;align-items:center;gap:6px;pointer-events:none;opacity:0;transition:opacity .25s}
 .pips i{width:22px;height:5px;border-radius:3px;background:rgba(255,255,255,0.14)}
 .pips i.on{background:var(--guard);box-shadow:0 0 8px rgba(255,209,102,0.6)}
@@ -169,7 +197,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     <div class="label"><span>Guard</span><span id="guardText">0%</span></div>
     <div class="track thin"><div class="fill guardfill" id="guardFill"></div></div>
   </div>
-  <div class="label" style="margin:0"><span id="roomLabel" class="room">Arena</span><span>Flasks <b id="flasks">3</b> · Kills <b id="kills">0</b><span id="goldWrap" hidden> · Gold <b id="gold">0</b></span></span></div>
+  <div class="label" style="margin:0"><span><span id="roomLabel" class="room">Arena</span> <span id="clock" class="clock"></span></span><span>Flasks <b id="flasks">3</b> · Kills <b id="kills">0</b><span id="goldWrap" hidden> · Gold <b id="gold">0</b></span></span></div>
   <div class="stats3" id="stats3"></div>
 </div>
 <div class="fade" id="fade"></div>
@@ -262,6 +290,35 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 <canvas class="mm panel" id="minimap" width="360" height="360" hidden></canvas>
 <div class="ihint panel" id="interactHint" hidden></div>
 <div class="qtrack panel" id="qtrack" hidden></div>
+<div class="overlay" id="invOverlay" hidden>
+  <div class="loadout panel">
+    <h2 id="invTitle">Inventory</h2>
+    <div class="tabs" id="invTabs" role="tablist"></div>
+    <div id="invBody" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button class="close" id="closeInv" type="button">Close</button>
+  </div>
+</div>
+<div class="overlay" id="pauseOverlay" hidden>
+  <div class="card panel">
+    <h2>Paused</h2>
+    <p id="pauseInfo"></p>
+    <div class="pausebtns" id="pauseBtns"></div>
+  </div>
+</div>
+<div class="overlay" id="mapOverlay" hidden>
+  <div class="mapwrap panel">
+    <h2 id="mapTitle">Map</h2>
+    <canvas id="bigmap" width="900" height="900"></canvas>
+    <div class="legend" id="mapLegend"></div>
+  </div>
+</div>
+<div class="overlay" id="slotOverlay" hidden>
+  <div class="card panel">
+    <h2>Choose a save</h2>
+    <div id="slotList" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button class="close alt" id="slotBack" type="button">Back</button>
+  </div>
+</div>
 <div class="overlay" id="settingsOverlay" hidden>
   <div class="loadout panel">
     <h2>Settings</h2>
@@ -315,18 +372,26 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   // ---------- settings (saved per browser) ----------
   const SETTINGS_KEY = 'clashTrial3d.settings.v1';
   const BIND_DEFAULT = { forward:'KeyW', back:'KeyS', left:'KeyA', right:'KeyD', jump:'Space', roll:'ShiftLeft', parry:'KeyF', skillQ:'KeyQ', skillE:'KeyE',
-    interact:'KeyE', lock:'Tab', flask:'KeyR', stance:'KeyC', item1:'Digit1', item2:'Digit2', item3:'Digit3', item4:'Digit4', loadout:'KeyK', settings:'KeyO', mute:'KeyM' };
+    interact:'KeyE', lock:'Tab', flask:'KeyR', stance:'KeyC', item1:'Digit1', item2:'Digit2', item3:'Digit3', item4:'Digit4',
+    inventory:'KeyI', map:'KeyM', loadout:'KeyK', pause:'KeyP', settings:'KeyO', mute:'KeyN' };
   const BIND_LABEL = { forward:'Move forward', back:'Move back', left:'Move left', right:'Move right', jump:'Jump', roll:'Roll', parry:'Parry / block', skillQ:'Skill 1',
     skillE:'Skill 2', interact:'Talk / rest', lock:'Lock on', flask:'Flask / respawn', stance:'Switch stance', item1:'Throwing knife', item2:'Whetstone', item3:'Iron tonic', item4:'Swift draught',
-    loadout:'Loadout', settings:'Settings', mute:'Mute' };
-  const SET_DEFAULT = { sens:1, invertY:false, fov:62, shake:1, volume:0.8, music:0.6, quality:'high', dmgNumbers:true };
+    inventory:'Inventory', map:'Map', loadout:'Loadout', pause:'Pause menu', settings:'Settings', mute:'Mute' };
+  const SET_DEFAULT = { sens:1, invertY:false, fov:62, shake:1, volume:0.8, music:0.6, quality:'high', dmgNumbers:true, difficulty:'normal' };
   const SET = (function(){
     let s = {};
     try{ s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}') || {}; }catch(err){}
     const out = Object.assign({}, SET_DEFAULT, s);
     out.bind = Object.assign({}, BIND_DEFAULT, s.bind || {});
+    // M used to be mute; it's the map now
+    if(s.bind && s.bind.mute === 'KeyM' && !s.bind.map) out.bind.mute = 'KeyN';
     return out;
   })();
+  // difficulty: story is for exploring, hard tightens every tell
+  const DIFF = { story:{ name:'Story', dmg:0.5, tell:1.35, read:99, desc:'Enemies hit half as hard and wind up slower. They never read your patterns.' },
+    normal:{ name:'Normal', dmg:1, tell:1, read:3, desc:'The game as designed.' },
+    hard:{ name:'Hard', dmg:1.3, tell:0.85, read:2, desc:'Enemies hit harder, wind up faster, and read your patterns sooner.' } };
+  const DF = () => DIFF[SET.difficulty] || DIFF.normal;
   function saveSettings(){ try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(SET)); }catch(err){} }
   const QUALITY = {
     low:    { ratio:1, shadows:false, shadowSize:1024, bloom:false, detail:0.35 },
@@ -477,6 +542,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     dodge(){ const t = AC.currentTime; noise(t, 0.22, { f0:300, f1:1300, q:1, gain:0.12, attack:0.02 }); },
     // footsteps sound like what you're walking on
     step(s){ const t = AC.currentTime;
+      if(s === 'water'){ noise(t, 0.16, { f0:900, f1:400, q:1.4, gain:0.08, attack:0.01 }); noise(t + 0.03, 0.1, { type:'highpass', f0:3000, gain:0.025 }); return; }
       if(s === 'snow'){ noise(t, 0.13, { f0:1900, f1:800, q:1.2, gain:0.07, attack:0.02 }); noise(t + 0.05, 0.06, { f0:2600, q:2, gain:0.03 }); }
       else if(s === 'stone'){ noise(t, 0.035, { type:'highpass', f0:2200, gain:0.04 }); tone(t, 0.04, { f0:190, f1:120, gain:0.03 }); }
       else if(s === 'ash'){ noise(t, 0.08, { type:'lowpass', f0:900, f1:300, gain:0.05 }); noise(t, 0.05, { f0:2800, q:1.5, gain:0.02 }); }
@@ -822,7 +888,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     R.armR.g.rotation.set(-p.armUp, -p.armYaw, 0);
     const extS = 0.55 + 0.45 * p.ext;
     for(const A of [R.armR, R.armL]){ A.m.scale.y = extS; A.m.position.z = R.armLen * extS / 2; A.hand.position.z = R.armLen * extS; }
-    if(R.twoHand) R.armL.g.rotation.set(-p.armUp * 0.92, -(p.armYaw + 0.55), 0);
+    if(R.dual){ R.armL.g.rotation.set(-(p.armUp * 0.75 + 0.15), p.armYaw * 0.6 + 0.45, 0); if(R.offSword) R.offSword.rotation.set(-p.tilt * 0.9, -p.swordYaw * 0.5, 0); }
+    else if(R.twoHand) R.armL.g.rotation.set(-p.armUp * 0.92, -(p.armYaw + 0.55), 0);
     else if(R.shieldMesh && R.shieldMesh.parent) R.armL.g.rotation.set(-0.2 + p.crouch * 0.25 - (p.reach || 0) * 0.3, -0.5, 0); // shield up in front
     else { const rc = p.reach || 0, sw = Math.sin(ph) * 0.5 * amt * (1 - rc); R.armL.g.rotation.set((1.1 - p.stride * 0.6 + sw) * (1 - rc) - 0.1 * rc, (-0.2 + p.stride * 0.5) * (1 - rc) + 0.2 * rc, 0); }
     R.sword.rotation.set(-p.tilt, p.swordYaw, 0);
@@ -1076,7 +1143,16 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const acts = actionsOf(e.code), is = a => acts.includes(a);
     if(settingsOpen){ if(e.code === 'Escape' || is('settings')) closeSettings(); return; }
     if(menuOpen){ if(e.code === 'Escape' || is('interact')) closeMenu(); return; }
+    if(screen){
+      // the same key closes its own screen; inventory/map/pause keys swap between screens
+      const target = is('inventory') ? 'inv' : is('map') ? 'map' : is('pause') ? 'pause' : null;
+      if(e.code === 'Escape' || target === screen) closeScreen(); else if(target) openScreen(target);
+      return;
+    }
     if(is('settings')){ openSettings(); return; }
+    if(is('inventory') && !paused){ openScreen('inv'); return; }
+    if(is('map') && !paused){ openScreen('map'); return; }
+    if((is('pause') || e.code === 'Escape') && !paused){ openScreen('pause'); return; }
     if(is('loadout') || (e.code === 'Escape' && paused)){ toggleLoadout(); return; }
     if(paused) return;
     const talked = is('interact') && mode === 'world' && tryInteract();
@@ -1099,10 +1175,11 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     PAD.prev = now;
     if(now.some(Boolean) || PAD.lx || PAD.ly) initAudio();
     // the start screen: A picks the first mode
-    if(!started){ if(down(0)) $('worldBtn').click(); return; }
+    if(!started){ if(screen === 'slots'){ if(down(0)) startSlot(curSlot, !readSlot(curSlot)); if(down(1)) closeScreen(true); } else if(down(0)) $('worldBtn').click(); return; }
+    if(screen){ if(down(1) || down(8) || down(9)) closeScreen(); return; }
     if(settingsOpen){ if(down(8) || down(1)) closeSettings(); return; }
     if(menuOpen){ if(down(1) || down(3)) closeMenu(); return; }
-    if(down(8)){ openSettings(); return; }
+    if(down(8)){ openScreen('pause'); return; }
     if(down(9) || (paused && down(1))){ toggleLoadout(); return; }
     if(paused) return;
     // camera on the right stick, routed through the same sensitivity as the mouse
@@ -1187,15 +1264,16 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   const BASE = { str:12, spd:10, vit:10, def:10 };
   // gear changes how you fight, not just numbers. str scales clashes and damage, speed is frames added to every swing
   const WEAPONS = {
-    arming:     { name:'Arming Sword', price:0, len:0.95, width:1, str:1, dmg:1, post:1, speed:0, range:0, desc:'Your starting blade. Balanced, no tricks.' },
-    sabre:      { name:'Sabre', price:140, len:0.88, width:0.6, str:0.88, dmg:1.04, post:0.85, speed:-2, range:-0.1, desc:'Every swing is 2 frames faster. Loses clashes it would have tied.' },
+    arming:     { oneHand:true, name:'Arming Sword', price:0, len:0.95, width:1, str:1, dmg:1, post:1, speed:0, range:0, desc:'Your starting blade. Balanced, no tricks.' },
+    sabre:      { oneHand:true, name:'Sabre', price:140, len:0.88, width:0.6, str:0.88, dmg:1.04, post:0.85, speed:-2, range:-0.1, desc:'Every swing is 2 frames faster. Loses clashes it would have tied.' },
     longsword:  { name:'Longsword', price:220, len:1.25, width:1.05, str:1.04, dmg:1, post:1.1, speed:1, range:0.4, desc:'Much longer reach, a frame slower. Hit them from where they can\'t hit you.' },
     greatblade: { name:'Greatblade', price:360, len:1.35, width:2.3, str:1.25, dmg:1.12, post:1.5, speed:4, range:0.25, whiff:10, desc:'Slow and brutal. Wins clashes and wrecks guards. Whiffs leave you hanging even longer.' },
-    fang:       { name:'Vesk\'s Fang', unique:'Someone out in the Wilds carries this.', len:0.9, width:0.5, str:0.92, dmg:1.06, post:0.9, speed:-2, range:0, link:4, desc:'Sabre-fast, and perfect links are easier to hit and cut deeper.' },
+    fang:       { oneHand:true, name:'Vesk\'s Fang', unique:'Someone out in the Wilds carries this.', len:0.9, width:0.5, str:0.92, dmg:1.06, post:0.9, speed:-2, range:0, link:4, desc:'Sabre-fast, and perfect links are easier to hit and cut deeper.' },
     cleaver:    { name:'Warden\'s Cleaver', unique:'Guarded by whatever rules this floor.', len:1.45, width:2.6, str:1.3, dmg:1.15, post:1.6, speed:3, range:0.35, whiff:8, desc:'Greatblade weight with more reach.' },
     odachi:     { name:'Odachi', price:520, req:'warden', len:1.6, width:0.8, str:1.08, dmg:1.08, post:1.15, speed:2, range:0.65, desc:'An absurdly long blade. Huge reach, a little slow, and it still wins most clashes.' },
     rimebrand:  { name:'Rimebrand', unique:'Frozen to the hand of the Rime Pass\'s king.', len:1.15, width:1.3, str:1.15, dmg:1.12, post:1.85, speed:1, range:0.2, desc:'Every cut chills their guard: massive posture damage, so deathblows come fast.' },
-    masterwork: { name:'Bram\'s Masterwork', unique:'Bram has an idea, if someone brings him the right metal.', len:1.02, width:1.1, str:1.08, dmg:1.12, post:1.12, speed:-1, range:0.12, link:2, desc:'Everything a sword should be: a bit faster, a bit longer, a bit harder.' },
+    masterwork: { oneHand:true, name:'Bram\'s Masterwork', unique:'Bram has an idea, if someone brings him the right metal.', len:1.02, width:1.1, str:1.08, dmg:1.12, post:1.12, speed:-1, range:0.12, link:2, desc:'Everything a sword should be: a bit faster, a bit longer, a bit harder.' },
+    abyssal:    { name:'Abyssal Edge', unique:'Held by something that sings under the sea.', len:1.4, width:1.0, str:1.14, dmg:1.14, post:1.25, speed:1, range:0.5, desc:'Long, cold and heavy. Huge reach that still swings fast enough to link.' },
     emberaxe:   { name:'Ember\'s Axe', unique:'Carried by something in the burning city.', len:1.3, width:1.4, str:1.28, dmg:1.18, post:1.4, speed:3, range:0.15, whiff:8, axe:true, desc:'Your big hits (overheads, crushes, finishers) go straight through enemy parries.' }
   };
   const ARMORS = {
@@ -1210,8 +1288,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   const gearW = () => WEAPONS[P.gear.weapon] || WEAPONS.arming;
   const gearA = () => ARMORS[P.gear.armor] || ARMORS.coat;
   const weaponWeight = () => clamp((gearW().str - 0.88) / 0.42, 0, 1); // 0 = sabre-light, 1 = greatblade-heavy
-  Object.defineProperty(P, 'str', { get(){ return Math.round((P.stats.str + 1) * gearW().str); } });
-  Object.defineProperty(P, 'def', { get(){ return Math.max(1, P.stats.def + gearA().def + (P.trinkets && P.trinkets.includes('crest') ? 3 : 0)); } });
+  Object.defineProperty(P, 'str', { get(){ return Math.round((P.stats.str + 1) * gearW().str * (typeof offhandW === 'function' && offhandW() ? 0.92 : 1)); } });
+  Object.defineProperty(P, 'def', { get(){ return Math.max(1, P.stats.def + gearA().def + Math.round(3 * tPow('crest'))); } });
   Object.defineProperty(P, 'maxHp', { get(){ return 60 + P.stats.vit * 4; } });
   const STAT_INFO = {
     str:{ label:'STR', color:'#ff8a5c' }, spd:{ label:'SPD', color:'#7fd8ff' },
@@ -1366,7 +1444,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
   }
   const pressLog = [];
-  const takenMult = () => 20 / (10 + P.def);
+  const takenMult = () => 20 / (10 + P.def) * DF().dmg;
 
   // ---------- enemies ----------
   const M = o => { const m = Object.assign({ active:5, rec:8, step:0.05, hold:[0,0], type:'slash', cone:1.0 }, o); m.tell = m.wind + Math.round(rand(m.hold[0], m.hold[1])); return m; };
@@ -1564,6 +1642,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(e.wpn === 'mace') hint('mace', 'Maces crush guards: blocking one drains your guard fast. Deflect it instead.');
     e.trail = makeTrail(T.trim, 0.3);
     enemies.push(e);
+    if(mode === 'world' && W.ng){ const k = W.ng; e.maxHp = e.hp = Math.round(e.maxHp * (1 + 0.5 * k)); e.str += 2 * k; e.def += 2 * k; e.postureMax = Math.round(e.postureMax * (1 + 0.2 * k)); }
     if(opts.idle){ e.idle = true; e.home = { x:e.x, z:e.z }; e.camp = opts.camp || null; e.yaw = opts.yaw != null ? opts.yaw : rand(0, TAU); return e; }
     if(!seen[type]){ seen[type] = true; log(T.tip, 'tip', 8000); }
     if(!lockT && !opts.noLock) lockT = e;
@@ -1628,6 +1707,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function surfaceAt(ent){
     if(!AREA) return 'stone';
     if(AREA.boss && Math.hypot(ent.x - AREA.boss.x, ent.z - AREA.boss.z) < 12.8) return 'stone';
+    if(AREA.water && inWater(ent)) return 'water';
     return AREA.surface || 'grass';
   }
   // keep bodies inside the play space: the round arena, or the current world area plus its trees, rocks and walls
@@ -1661,8 +1741,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function addPosture(e, amt){ if(!e.alive) return; e.posture += amt; e.postureT = 0; if(e.posture >= e.postureMax) deathblow(e); }
   function deathblow(e){
     e.posture = 0; e.justBroke = true; if(!e.spar){ bountyNote('deathblow'); talentNote('deathblows'); }
-    const exec = P.talents.has('exec'), dmg = (e.maxHp * 0.22 + 14) * (exec ? 1.25 : 1) * (hasT('mark') ? 1.2 : 1);
-    if(P.alive && (exec || hasT('ember'))){ const h = P.maxHp * ((exec ? 0.06 : 0) + (hasT('ember') ? 0.04 : 0)); P.hp = Math.min(P.maxHp, P.hp + h); }
+    const exec = P.talents.has('exec'), dmg = (e.maxHp * 0.22 + 14) * (exec ? 1.25 : 1) * (1 + 0.2 * tPow('mark'));
+    if(P.alive && (exec || tPow('ember') > 0)){ const h = P.maxHp * ((exec ? 0.06 : 0) + (0.04 * tPow('ember'))); P.hp = Math.min(P.maxHp, P.hp + h); }
     slowmo(520, 0.15); hitstop = Math.max(hitstop, 12); screenFlash(0.4, '#ffffff'); zoomPunch(11); shake = Math.max(shake, 0.06); impact(4);
     kickCam(P, e, 0.25);
     sfx('deathblow');
@@ -1676,6 +1756,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     floatText(c.x, c.y + 0.3, c.z, Math.round(dmg) + '', '#ffd166', 1.3);
     push(e, P, 0.24);
     stunEnemy(e, 18);
+    if(e.hp <= 0 && !e.dummy) finisher(e);
     if(e.hp <= 0) killEnemy(e);
   }
   function startEnemyAttack(e, chain){
@@ -1686,21 +1767,22 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   }
   function beginMove(e){
     const m = e.chain[e.ci], extra = e.slowNext; e.slowNext = 0;
-    const tell = e.enraged ? Math.max(m.wind, Math.round(m.tell * 0.7)) : m.tell;
+    const tell = Math.max(3, Math.round((e.enraged ? Math.max(m.wind, Math.round(m.tell * 0.7)) : m.tell) * DF().tell));
     e.phase = 'tell'; e.t = tell + extra; e.tellTotal = e.t; e.strike = null;
+    if(dist(e, P) < 14) bestiaryMove(e, m);
     if(m.skill && e.ci === 0) sfx('skill', 0.75);
     else if(m.type === 'sweep') sfx('windSweep'); else if(m.type === 'thrust') sfx('windThrust'); else if(m.heavy) sfx('windup');
   }
   function enemyReact(eta, id, weight){
     for(const e of enemies){
-      if(!e.alive || e.idle || e.dummy || dist(e, P) > 3.6 || isBehind(e)) continue;
+      if(!e.alive || e.idle || e.dummy || e.tutor || dist(e, P) > 3.6 || isBehind(e)) continue;
       const T = e.T;
       // they remember what you keep throwing at them, and start answering it
       e.mem = e.mem || {};
       // mashing teaches them twice as fast. Your opener only counts half: every string starts with it
-      const mashing = isMashing();
-      if(id) e.mem[id] = (e.mem[id] || 0) + (mashing ? 2 : 1) * (weight == null ? 1 : weight);
-      if(id && (e.mem[id] >= 3 || mashing) && ['neutral','ready','recoil'].includes(e.state) && Math.random() < (mashing ? 0.6 : 0.7)){
+      const mashing = isMashing() && DF().read < 99;
+      if(id) e.mem[id] = (e.mem[id] || 0) + (mashing ? 2 : 1) * (weight == null ? 1 : weight) * (1 - 0.5 * tPow('mirror'));
+      if(id && (e.mem[id] >= DF().read || mashing) && ['neutral','ready','recoil'].includes(e.state) && Math.random() < (mashing ? 0.6 : 0.7)){
         if(id === 'crush'){ e.state = 'backstep'; e.t = 12; }
         else if(id === 'rise'){ e.state = 'block'; e.t = 26; e.blockHits = 0; }
         else { e.state = 'parry'; e.t = eta + 6; }
@@ -1749,7 +1831,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const ePow = e.str * (m.heavy ? 1.5 : 1) * (e.wpn === 'mace' ? 1.15 : 1);
     const pPow = P.str * (P.atk.big ? 1.3 : 1) * (P.atk.crush ? 1.2 : 1) * (quality === 'perfect' ? 1.25 : 0.62) * stanceOf().clash;
     const r = pPow / ePow;
-    P.linkFrame = frameNo;
+    P.linkFrame = frameNo; tutNote('clash');
     exStreak = (frameNo - exLast < 90 && exEnemy === e) ? exStreak + 1 : 1; exLast = frameNo; exEnemy = e;
     const k = Math.min(exStreak, 6);
     P.atkHit = true; P.atkT = 0; P.lock = 0; P.comboT = 0; // every clash restarts your string
@@ -1859,8 +1941,10 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function resolveStrike(e, st){
     st.resolved = true;
     if(P.invuln){ floatText(P.x, 2, P.z, 'PERFECT DODGE', '#7fd8ff'); gainStat('spd', 4, e); if(!e.spar) talentNote('pdodge'); return; }
-    if(st.type === 'grab'){ grabbed(e, st); return; }
     const front = facingToward(e);
+    // a parry right as the hand closes reverses the grab into a throw
+    if(st.type === 'grab' && front && P.parryT > 0 && P.parryT >= (P.parryMax || 15) - 5){ grabReversal(e); return; }
+    if(st.type === 'grab'){ grabbed(e, st); return; }
     if(st.type === 'sweep'){ hurtPlayer(e, st); return; }
     // an axe's heavy swing can't be turned aside with a parry
     if(P.parryT > 0 && front && e.wpn === 'axe' && st.heavy){
@@ -1895,6 +1979,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const em = curMove(e);
     damageWeapon(e, 1); gainStat('def', 2, e); if(!e.spar){ bountyNote('deflect'); talentNote('deflectStreak'); }
     if(P.talents.has('steady')) P.posture = Math.max(0, P.posture - 12);
+    tutNote('deflect');
     if(em && em.skill){
       // skill chains are locked in: deflecting a hit doesn't stop the rest, so be ready for the next one
       P.parryCd = 0; e.armRecoil = 6; addPosture(e, 14); noteSkillParry(e);
@@ -1910,7 +1995,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
     stunEnemy(e, 12); e.recoil = 0.35; e.softStun = true; push(e, P, 0.04 + (P.def - 10) * 0.004); e.armRecoil = 10;
     e.slowNext = Math.max(0, Math.round((P.def - 10) * 0.8)); // DEF: deflects delay their next swing
-    addPosture(e, 18 + (hasT('heart') ? 8 : 0));
+    addPosture(e, 18 + (8.0 * tPow('heart')));
     hitstop = Math.max(hitstop, 7); shake = Math.max(shake, 0.02); kickCam(e, P, 0.06); zoomPunch(2);
     sparkBurst(c.x, c.y, c.z, '#ffe7a3', 24, 0.1); screenFlash(0.1, '#fff2c4');
     sfx('clang', 1.1, 1);
@@ -1921,6 +2006,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const c = bladeContact(e);
     damageWeapon(e, 1); gainStat('def', 3, e); if(!e.spar){ bountyNote('deflect'); talentNote('deflectStreak'); }
     if(P.talents.has('steady')) P.posture = Math.max(0, P.posture - 12);
+    tutNote('deflect');
     stunEnemy(e, 18); e.recoil = 0.5; push(e, P, 0.08); e.armRecoil = 12;
     addPosture(e, 35);
     hitstop = Math.max(hitstop, 9); shake = Math.max(shake, 0.04); zoomPunch(5); impact(2); kickCam(e, P, 0.1);
@@ -1944,13 +2030,27 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     } else if(r > 0.85){
       startBladeLock(e, c);
     } else {
-      const chip = st.dmg * 0.45 * takenMult();
+      const chip = st.dmg * 0.45 * takenMult(); noteHit(e, st, 'clash');
       P.hp -= chip; P.flash = 1; P.stunT = 10; P.recoil = 0.5; push(P, e, 0.16); passiveStat('def', 4, e);
       floatText(c.x, c.y + 0.4, c.z, 'CLASH LOST  -' + Math.round(chip), '#ff6b6b', 1.15);
       checkDeath();
     }
   }
+  function grabReversal(e){
+    P.parryT = 0; P.parryCd = 10; P.riposteT = 60;
+    const c = chestOf(e), a = yawTo(e, P);
+    // throw them over your shoulder
+    e.state = 'stun'; e.t = 46; e.chain = null; e.strike = null; e.vy = 0.13; e.softStun = false;
+    e.kx += Math.sin(a) * 0.32; e.kz += Math.cos(a) * 0.32;
+    e.hp -= e.maxHp * 0.08; e.flash = 1; addPosture(e, 50);
+    sfx('heavy'); sfx('clang', 1.2, 0.7); slowmo(500, 0.2); hitstop = Math.max(hitstop, 10); impact(3); zoomPunch(8); shake = Math.max(shake, 0.05);
+    sparkBurst(c.x, c.y, c.z, '#fff0b8', 36, 0.13); dust(e.x, e.z, 14);
+    floatText(c.x, c.y + 0.8, c.z, 'REVERSAL', '#ffd166', 1.5);
+    hint('reversal', 'Grab reversal: a parry right as the hand closes throws them. Too early or too late and you\'re grabbed.');
+    if(e.hp <= 0) killEnemy(e);
+  }
   function grabbed(e, st){
+    noteHit(e, st, 'grab');
     const d = st.dmg * takenMult(); P.tc.deflectStreak = 0;
     P.hp -= d; P.flash = 1; P.recoil = 0.9; P.stunT = 40; P.atkT = 0; P.parryT = 0; P.skill = null; P.combo = 0; P.hitTilt = 0.5;
     push(P, e, 0.3); P.vy = 0.1; P.onGround = false;
@@ -1962,8 +2062,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     checkDeath();
   }
   function playerBlock(e, st){
+    noteHit(e, st, st.bash ? 'bash' : e.wpn === 'mace' ? 'mace' : 'blocked');
     P.hp -= st.dmg * (st.heavy ? 0.35 : 0.12) * takenMult() * (e.wpn === 'axe' ? 2 : 1);
-    P.posture += ((st.heavy ? 40 : 16) + (st.bash ? 26 : 0)) * gearA().guard * (e.wpn === 'mace' ? 1.8 : 1) * (hasT('rivet') ? 0.85 : 1) * (P.buffs.tonic > 0 ? 0.6 : 1); P.postureT = 0;
+    P.posture += ((st.heavy ? 40 : 16) + (st.bash ? 26 : 0)) * gearA().guard * (e.wpn === 'mace' ? 1.8 : 1) * (1 + -0.15 * tPow('rivet')) * (P.buffs.tonic > 0 ? 0.6 : 1) * (offhandW() ? 1.25 : 1); P.postureT = 0;
     passiveStat('def', 1.5, e);
     if(st.bash){ push(P, e, 0.1); hint('bash', 'Shield bashes chew through your guard. Parry them or step away.'); }
     push(P, e, st.heavy ? 0.1 : 0.04); P.recoil = st.heavy ? 0.35 : 0.15; P.armRecoil = 6;
@@ -1990,8 +2091,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
     // caught mid-windup: counter-hit, it hurts more and you're stuck longer
     const counter = (P.atkT > 0 && !P.atkHit) || (P.skill && P.skill.phase !== 'motion');
+    noteHit(e, st); P.lastHit.counter = counter;
     P.skill = null;
-    const d = st.dmg * takenMult() * (counter ? 1.35 : 1) * (st.heavy && hasT('plate') ? 0.88 : 1);
+    const d = st.dmg * takenMult() * (counter ? 1.35 : 1) * (st.heavy ? 1 - 0.12 * tPow('plate') : 1);
     P.hp -= d; P.flash = 1; P.recoil = st.heavy ? 0.7 : 0.4; P.hitTilt = hitSide(P, e) * (st.heavy ? 1.4 : 1);
     P.stunT = Math.round(((st.heavy ? 20 : 12) + (counter ? 8 : 0) + (st.bash ? 6 : 0)) * stunMult() * (gearA().poise ? 0.6 : 1));
     P.tc.deflectStreak = 0; push(P, e, st.heavy ? 0.14 : st.bash ? 0.18 : 0.06);
@@ -2014,6 +2116,13 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       P.hp = 1; endBladeLock(); slowmo(500, 0.3); sfx('fall');
       showBanner('YOU YIELD', 'the spar is over'); endSpar(true); return;
     }
+    // the Pit: losing a ranked fight means yielding, not dying
+    if(P.hp <= 0 && P.alive && mode === 'world' && AREA && AREA.id === 'pit'){ P.hp = 1; pitLose(); return; }
+    // the Drowned Locket catches one killing blow per area
+    if(P.hp <= 0 && P.alive && tPow('locket') > 0 && !P.locketUsed){
+      P.hp = 1; P.locketUsed = true; slowmo(600, 0.2); sfx('learn'); screenFlash(0.3, '#9fe8ff');
+      floatText(P.x, 2.5, P.z, 'THE LOCKET HOLDS', '#9fe8ff', 1.3); return;
+    }
     if(P.hp <= 0 && P.alive){
       P.hp = 0; P.alive = false; slowmo(900, 0.2); sfx('fall'); endBladeLock();
       onDeath();
@@ -2024,8 +2133,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function playerHits(e, hit){
     if(!e.alive) return;
     // weapon upgrades, buffs and trinkets all scale the hit in one place
-    const mul = upgM() * (P.buffs.whet > 0 ? 1.2 : 1) * (hasT('brand') && P.hp < P.maxHp * 0.5 ? 1.15 : 1);
-    hit = Object.assign({}, hit, { dmg:hit.dmg * mul, post:(hit.post || hit.dmg * 0.6) * mul * (hasT('knuckle') ? 1.12 : 1) });
+    const mul = upgM() * (P.buffs.whet > 0 ? 1.2 : 1) * (P.hp < P.maxHp * 0.5 ? 1 + 0.15 * tPow('brand') : 1) * (e.hp >= e.maxHp ? 1 + 0.15 * tPow('huntmark') : 1) * offhandMul();
+    hit = Object.assign({}, hit, { dmg:hit.dmg * mul, post:(hit.post || hit.dmg * 0.6) * mul * (1 + 0.12 * tPow('knuckle')) });
     // a thrown knife just bounces off a guard
     if(hit.knife && !e.idle && !isBehind(e) && (e.state === 'parry' || e.state === 'block')){ const c = chestOf(e); floatText(c.x, c.y + 0.5, c.z, 'BLOCKED', '#cfd8ff', 0.9); sfx('block'); return; }
     e.justBroke = false;
@@ -2088,7 +2197,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const dropBonus = hit.drop && (e.y > 0.05 || e.state === 'stun') ? 1.35 : 1;
     // what kind of hit this was: Gorrun remembers which kind hurt him most and grows a hide against it
     const cat = hit.skill ? 'skill' : (hit.big || hit.crush) ? 'heavy' : 'light', resisted = e.resist === cat;
-    const ambushM = ambush ? (P.talents.has('predator') ? 2.2 : 1.6) + (hasT('veil') ? 0.3 : 0) : 1;
+    const ambushM = ambush ? (P.talents.has('predator') ? 2.2 : 1.6) + (0.3 * tPow('veil')) : 1;
     const clutchM = P.talents.has('clutch') && P.hp < P.maxHp * 0.25 ? 1.2 : 1;
     const d = hit.dmg * (behind ? 1.25 : 1) * (exposed ? 1.3 : 1) * (counter ? 1.3 : 1) * ambushM * clutchM * (resisted ? 0.55 : 1) * dropBonus * (P.str / 10) * (20 / (10 + e.def));
     if(e.dmgBy) e.dmgBy[cat] = (e.dmgBy[cat] || 0) + d;
@@ -2140,10 +2249,18 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   }
   function killEnemy(e){
     if(!e.alive) return;
-    if(e.dummy){ e.hp = e.maxHp; return; } // the training dummy never falls
+    if(e.dummy || e.tutor){ e.hp = e.maxHp; return; } // the training dummy and drill partner never fall
+    // the drowned rise again unless the last blow was a deathblow
+    if(e.T.revive && !e.revived && !e.justBroke){
+      e.revived = true; e.hp = Math.round(e.maxHp * 0.45); e.posture = 0; e.state = 'stun'; e.t = 110; e.rising = true; e.chain = null; e.strike = null;
+      const c = chestOf(e); floatText(c.x, c.y + 0.9, c.z, 'IT RISES AGAIN', '#7affe8', 1.2); sfx('roar');
+      hint('drowned', 'The drowned get back up unless your last blow is a deathblow. Break their guard to finish them.');
+      return;
+    }
     if(e.T.rival && !e.finalStand){ rivalEscape(e); return; }
     if(BL && BL.e === e) endBladeLock();
-    if(mode === 'world' && !e.spar) worldKill(e);
+    if(mode === 'world' && !e.spar && !e.pit) worldKill(e);
+    if(!e.spar) bestiaryKill(e);
     e.alive = false; e.dead = 120; e.hp = 0; e.state = 'dead'; if(!e.spar) kills++;
     push(e, P, 0.1);
     sfx('fall'); slowmo(420, 0.2); impact(2);
@@ -2186,14 +2303,14 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const mashed = pressLog.some(f => f < P.linkFrame && f >= P.linkFrame - 10 && f > P.atkStartFrame + 1);
     const G = gearW();
     const ST = stanceOf();
-    P.perfect = id !== 'a1' && pf != null && pf - P.linkFrame >= 0 && pf - P.linkFrame <= 6 + (G.link || 0) + ST.link + (hasT('ribbon') ? 2 : 0) && !mashed;
+    P.perfect = id !== 'a1' && pf != null && pf - P.linkFrame >= 0 && pf - P.linkFrame <= 6 + (G.link || 0) + ST.link + (2.0 * tPow('ribbon')) && !mashed;
     const s = Object.assign({}, base, P.perfect ? { startup:Math.max(3, base.startup - 3), total:base.total - 3 } : {});
     const w = woundP();
     const fm = (1 + 0.25 * w) * clamp(1 - (P.stats.spd - 10) * 0.012, 0.7, 1); // wounds slow you, SPD speeds you up
     if(fm !== 1){ s.startup = Math.max(3, Math.round(s.startup * fm)); s.total = Math.round(s.total * fm); s.lock = Math.round(s.lock * fm); }
-    const spd = G.speed + ST.speed;
+    const spd = G.speed + ST.speed - (offhandW() ? 1 : 0);
     if(spd){ s.startup = Math.max(3, s.startup + spd); s.total = Math.max(s.startup + 6, s.total + spd); s.lock = Math.max(4, s.lock + spd); }
-    s.range += G.range + (hasT('piketip') ? 0.15 : 0);
+    s.range += G.range + (0.15 * tPow('piketip'));
     // stale moves: the same move over and over loses its bite
     P.recent = P.recent.filter(r => frameNo - r.f < 240);
     const n = P.recent.filter(r => r.id === id).length;
@@ -2216,7 +2333,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   }
   function meleeHit(){
     const mashed = isMashing();
-    const G = gearW(), s = P.atk, mult = P.staleMult * (P.perfect ? (G.link ? 1.3 : 1.15) + (hasT('ribbon') ? 0.05 : 0) : 1) * (mashed ? 0.8 : 1);
+    const G = gearW(), s = P.atk, mult = P.staleMult * (P.perfect ? (G.link ? 1.3 : 1.15) + (0.05 * tPow('ribbon')) : 1) * (mashed ? 0.8 : 1);
     sfx('swing', (s.big ? 1.4 : 1) * (0.8 + 0.6 * weaponWeight()));
     P.kx += Math.sin(P.yaw) * 0.05; P.kz += Math.cos(P.yaw) * 0.05;
     let landed = false;
@@ -2228,18 +2345,66 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
         playerHits(e, { dmg:s.dmg * mult * G.dmg * stanceOf().dmg, post:s.post * mult * G.post * stanceOf().post, big:!!s.big, crush:!!s.crush, rise:!!s.rise, drop:!!s.drop, pierce:!!s.pierce, stale:P.staleMult < 0.7 });
       }
     }
-    if(landed) P.linkFrame = frameNo;
+    if(landed){ P.linkFrame = frameNo; tutNote('hit'); }
     else whiffed();
+    breakableHits(s);
+    // dual wield: the off-hand blade follows a beat later
+    if(offhandW()){ P.offT = 5; P.offAtk = s; }
+  }
+  // ----- dual wield -----
+  const offhandW = () => P.gear && P.gear.offhand && WEAPONS[P.gear.offhand] && gearW().oneHand ? WEAPONS[P.gear.offhand] : null;
+  const offhandMul = () => 1;
+  function offhandStrike(){
+    const W2 = offhandW(), s = P.offAtk; if(!W2 || !s || !P.alive || P.stunT > 0 || BL) return;
+    sfx('swing', 0.8);
+    for(const e of enemies){
+      if(!e.alive || e.state === 'bladelock') continue;
+      if(dist(P, e) <= s.range * 0.9 + e.radius && Math.abs(angDiff(P.yaw, yawTo(P, e))) <= (s.cone || 1.15)){
+        playerHits(e, { dmg:s.dmg * 0.4 * W2.dmg, post:s.post * 0.35 * W2.post, offhand:true });
+      }
+    }
+  }
+  // ----- plunging attack: attack in the air to slam down -----
+  function startPlunge(){
+    P.plunge = true; P.lock = 60; P.atkT = 0; P.comboT = 0; P.vy = Math.min(P.vy, -0.04);
+    sfx('swing', 1.6); floatText(P.x, 2.4, P.z, 'PLUNGE', '#ffd7a8', 0.9);
+  }
+  function plungeImpact(){
+    P.plunge = false; P.lock = 14;
+    shake = Math.max(shake, 0.06); zoomPunch(6); impact(2); sfx('heavy'); sfx('land');
+    dust(P.x, P.z, 20); groundRing(P.x, P.z, '#ffd7a8', 0.26); groundRing(P.x, P.z, '#ffffff', 0.16);
+    let hitAny = false;
+    for(const e of enemies){
+      if(!e.alive || e.state === 'bladelock' || dist(P, e) > 2.5 + e.radius) continue;
+      hitAny = true;
+      playerHits(e, { dmg:16, post:26, big:true, rise:!e.T.armored, plunge:true });
+      if(e.alive) push(e, P, 0.12);
+    }
+    if(hitAny) hitstop = Math.max(hitstop, 8);
+    tutNote('plunge');
+  }
+  // ----- execution finishers: a deathblow that kills plays a short cinematic strike -----
+  function finisher(e){
+    const heavy = gearW().axe || weaponWeight() > 0.6;
+    P.finT = 34; P.finType = heavy ? 'cleave' : offhandW() ? 'cross' : 'thrust';
+    P.yaw = yawTo(P, e); P.atkT = 0; P.skill = null; P.lock = 34;
+    // step in close for the blow
+    const d = dist(P, e); if(d > 1.4){ const a = yawTo(P, e); P.kx += Math.sin(a) * (d - 1.3) * 0.18; P.kz += Math.cos(a) * (d - 1.3) * 0.18; }
+    slowmo(800, 0.12); zoomPunch(12); impact(5); camSide = 0.8; screenFlash(0.35, '#ffffff');
+    setTimeout(() => sfx('flick'), 120);
+    const c = chestOf(e); floatText(c.x, c.y + 1.1, c.z, 'EXECUTION', '#ffd166', 1.6);
+    sparkBurst(c.x, c.y, c.z, '#ffffff', 40, 0.18);
   }
   function startSkill(slot, connect){
     const id = P.loadout[slot]; if(!id) return false;
     const d = skillDef(id);
     if(d.counterOnly && P.riposteT <= 0){ floatText(P.x, 2.3, P.z, 'NO OPENING', '#958ca8', 0.85); return false; }
     P.skill = { def:d, slot, phase:'pre', t:connect ? Math.ceil(d.pre / 2) : d.pre, hits:new Set(), hitT:0, landed:false, connected:!!connect };
-    P.skillCd[slot] = Math.round((connect && d.linked ? d.cd * 0.7 : d.cd) * (hasT('thread') ? 0.9 : 1)); P.atkT = 0; P.parryT = 0; P.comboT = 0; P.riposteT = 0;
-    if(connect && hasT('cinders')){ P.hp = Math.min(P.maxHp, P.hp + P.maxHp * 0.03); floatText(P.x, 2.6, P.z, '+' + Math.round(P.maxHp * 0.03), '#7fe38a', 0.8); }
+    P.skillCd[slot] = Math.round((connect && d.linked ? d.cd * 0.7 : d.cd) * (1 + -0.1 * tPow('thread'))); P.atkT = 0; P.parryT = 0; P.comboT = 0; P.riposteT = 0;
+    if(connect && tPow('cinders') > 0){ const h = P.maxHp * 0.03 * tPow('cinders'); P.hp = Math.min(P.maxHp, P.hp + h); floatText(P.x, 2.6, P.z, '+' + Math.round(h), '#7fe38a', 0.8); }
     PTRAIL.mesh.material.color.setHex(d.color);
     sfx('skill', slot === 'Q' ? 1 : 1.25);
+    if(connect) tutNote('connect');
     if(connect){ floatText(P.x, 2.45, P.z, 'SKILL CONNECT', '#ffffff', 1.15); screenFlash(0.12, d.hex); zoomPunch(4); impact(1); }
     if(lockT && lockT.alive) P.yaw = yawTo(P, lockT);
     enemyReact(P.skill.t, id);
@@ -2320,7 +2485,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
   }
   function updatePlayer(){
-    for(const k of ['comboT','lock','parryT','parryCd','dodgeCd','stunT','armRecoil','whiffT','riposteT','stanceT','flourishT','landT']) if(P[k] > 0) P[k]--;
+    for(const k of ['comboT','lock','parryT','parryCd','dodgeCd','stunT','armRecoil','whiffT','riposteT','stanceT','flourishT','landT','finT']) if(P[k] > 0) P[k]--;
+    if(P.finT === 1) camSide = 0;
+    if(P.offT > 0 && --P.offT === 0) offhandStrike();
     if(woundP() > 0.05) hint('wound', 'You\'re wounded: slower moves, swings, rolls, parries and skills. Press R to drink a flask. Getting hit mid-drink spills it.');
     if(P.drinkT > 0){
       P.drinkT--;
@@ -2330,7 +2497,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(P.atkT <= 0) P.sinceAtk++;
     if(P.comboT <= 0 && P.atkT <= 0) P.combo = 0;
     P.flash *= 0.8; P.recoil *= 0.86; P.hitTilt *= 0.85;
-    if(++P.postureT > 50) P.posture = Math.max(0, P.posture - 0.45);
+    if(++P.postureT > 50) P.posture = Math.max(0, P.posture - 0.45 * (1 + tPow('pearl')));
     for(const k of ['Q','E']) if(P.skillCd[k] > 0) P.skillCd[k]--;
     if(!P.alive){ P.kx *= 0.85; P.kz *= 0.85; P.x += P.kx; P.z += P.kz; return; }
     if(BL){ updateBladeLock(); P.kx *= 0.8; P.kz *= 0.8; return; }
@@ -2349,7 +2516,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const fx = Math.sin(cam.yaw), fz = Math.cos(cam.yaw), rx = -Math.cos(cam.yaw), rz = Math.sin(cam.yaw);
     let mx = fx * iz + rx * ix, mz = fz * iz + rz * ix;
     const ml = Math.hypot(mx, mz); if(ml > 0){ mx /= ml; mz /= ml; }
-    const busy = P.dodgeT > 0 || P.stunT > 0 || P.drinkT > 0 || P.useT > 0 || P.throwT > 0;
+    const busy = P.dodgeT > 0 || P.stunT > 0 || P.drinkT > 0 || P.useT > 0 || P.throwT > 0 || P.finT > 0 || P.plunge;
 
     if(lockT && lockT.alive) P.yaw = turnToward(P.yaw, yawTo(P, lockT), busy ? 0.05 : 0.3);
     else if(ml > 0 && !busy && P.atkT <= 0) P.yaw = turnToward(P.yaw, Math.atan2(mx, mz), 0.22);
@@ -2362,7 +2529,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(has('parry') && P.dodgeT <= 0 && P.stunT <= 0 && P.drinkT <= 0){
       take('parry');
       if(P.atkT > 0 && !P.atkHit){ P.atkT = 0; P.lock = 0; floatText(P.x, 2.1, P.z, 'FEINT', '#cfd8ff', 0.8); }
-      if(P.parryCd <= 0){ P.parryT = Math.max(9, 15 - Math.round(4 * woundP())); P.parryCd = 30; P.atkT = 0; if(lockT) P.yaw = yawTo(P, lockT); }
+      if(P.parryCd <= 0){ P.parryT = P.parryMax = Math.max(9, 15 - Math.round(4 * woundP())); P.parryCd = 30; P.atkT = 0; if(lockT) P.yaw = yawTo(P, lockT); }
     }
     if(has('dodge') && P.dodgeCd <= 0 && P.dodgeT <= 0 && P.stunT <= 0 && P.onGround && P.drinkT <= 0){
       take('dodge');
@@ -2372,13 +2539,13 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
     if(has('jump') && P.onGround && !busy && P.atkT <= 0){ take('jump'); P.vy = 0.118; P.onGround = false; dust(P.x, P.z, 4); }
     const lateDodge = P.dodgeT > 0 && P.dodgeT <= 5;
-    if(has('attack') && (!busy || lateDodge) && P.lock <= 0 && P.parryT <= 0 && P.stanceT <= 0){ take('attack'); P.dodgeT = 0; P.flourishT = 0; startAttack(); }
+    if(has('attack') && (!busy || lateDodge) && P.lock <= 0 && P.parryT <= 0 && P.stanceT <= 0){ take('attack'); P.dodgeT = 0; P.flourishT = 0; if(!P.onGround && P.y > 0.25 && !P.plunge) startPlunge(); else if(!P.plunge) startAttack(); }
     for(const k of ['Q','E']){
       if(has('skill' + k) && (!busy || lateDodge) && P.skillCd[k] <= 0 && P.parryT <= 0 && P.lock <= 0 && P.onGround){ take('skill' + k); P.dodgeT = 0; startSkill(k, false); break; }
     }
 
     P.blocking = guardHeld() && P.parryT <= 0 && P.dodgeT <= 0 && P.stunT <= 0 && P.atkT <= 0;
-    P.invuln = P.dodgeT > 6 - gearA().iframes - (P.talents.has('ghost') ? 2 : 0) - (hasT('veil') ? 1 : 0);
+    P.invuln = P.finT > 0 || P.dodgeT > 6 - gearA().iframes - (P.talents.has('ghost') ? 2 : 0) - (1.0 * tPow('veil'));
 
     let tvx = 0, tvz = 0;
     if(P.dodgeT > 0){
@@ -2389,7 +2556,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     } else {
       P.roll = 0;
       if(P.stunT <= 0){
-        const sp = 0.072 * spdMult() * (P.atkT > 0 ? 0.35 : 1) * (P.blocking ? 0.45 : 1) * (P.parryT > 0 ? 0.4 : 1) * (lockT ? 0.85 : 1) * (1 - 0.28 * woundP()) * (P.drinkT > 0 ? 0.3 : 1) * gearA().move * stanceOf().move * padMag() * (P.buffs.draught > 0 ? 1.12 : 1);
+        const sp = 0.072 * spdMult() * (P.atkT > 0 ? 0.35 : 1) * (P.blocking ? 0.45 : 1) * (P.parryT > 0 ? 0.4 : 1) * (lockT ? 0.85 : 1) * (1 - 0.28 * woundP()) * (P.drinkT > 0 ? 0.3 : 1) * gearA().move * stanceOf().move * padMag() * (AREA && AREA.water && inWater(P) && !tPow('tide') ? 0.7 : 1) * (1 + 0.06 * tPow('tide')) * (P.buffs.draught > 0 ? 1.12 : 1);
         tvx = mx * sp; tvz = mz * sp;
       }
       const r = P.onGround ? 0.22 : 0.08;
@@ -2405,8 +2572,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       if(near){ P.runAcc += pspd; if(P.runAcc > 3){ P.runAcc = 0; gainStat('spd', 0.35, near); } }
     }
     const wasAir = !P.onGround;
-    P.vy -= 0.0062; P.y += P.vy;
-    if(P.y <= 0){ if(wasAir && P.vy < -0.08){ sfx('land'); dust(P.x, P.z, 6); P.landT = 9; } P.y = 0; P.vy = 0; P.onGround = true; }
+    P.vy -= 0.0062; if(P.plunge) P.vy = Math.min(P.vy, -0.22); P.y += P.vy;
+    if(P.y <= 0){ if(wasAir && P.vy < -0.08){ sfx('land'); dust(P.x, P.z, 6); P.landT = 9; } P.y = 0; P.vy = 0; P.onGround = true; if(P.plunge) plungeImpact(); }
     if(P.atkT > 0){
       P.atkT--;
       if(!P.atkHit && P.atkT <= P.atkHitFrame){ P.atkHit = true; meleeHit(); }
@@ -2489,7 +2656,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       const sp = m.dash || (m.step * 2.2 * (e.t / m.active));
       e.vx = Math.sin(e.yaw) * sp; e.vz = Math.cos(e.yaw) * sp;
       if(!e.strike.resolved && strikeHits(e, m)){ resolveStrike(e, e.strike); if(e.state !== 'attack') return; }
-      if(e.t <= 0){ e.phase = 'rec'; e.t = Math.round(m.rec * (1 + 0.4 * eWound(e))); e.strike = null; }
+      if(e.t <= 0){ if(m.type === 'sweep' && e.strike && !e.strike.resolved && e.tutor) tutNote('evade'); e.phase = 'rec'; e.t = Math.round(m.rec * (1 + 0.4 * eWound(e))); e.strike = null; }
     } else {
       e.vx *= 0.6; e.vz *= 0.6;
       if(e.t <= 0){
@@ -2500,6 +2667,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
   }
   function roarBlast(e){
+    noteHit(e, null, 'roar');
     sfx('roar'); shake = Math.max(shake, 0.08); zoomPunch(9); impact(2); screenFlash(0.22, '#b0302f');
     groundRing(e.x, e.z, '#ff6a5a', 0.34); dust(e.x, e.z, 26);
     if(dist(e, P) < 4.5 && !P.invuln && P.alive){
@@ -2509,6 +2677,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     log(e.name + ' roars. Faster now, and he leaps.', 'lose', 4000);
   }
   function landExecution(e){
+    noteHit(e, null, 'execute');
     if(!P.alive || P.invuln || dist(e, P) > 3) return;
     const d = 22 + e.str * 0.6;
     P.hp -= d; P.flash = 1; P.recoil = 0.9; P.hitTilt = 0.5; push(P, e, 0.2); P.stunT = Math.max(P.stunT, 14);
@@ -2535,6 +2704,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       if(++e.postureT > 70) e.posture = Math.max(0, e.posture - 0.3 * (0.25 + 0.75 * e.hp / e.maxHp) * (e.T.fastPosture ? 2.5 : 1));
       if(e.T.boss && !e.phase2 && (e.hp < e.maxHp * 0.5 || e.forceP2) && ['neutral','stun','recoil'].includes(e.state)){
         e.phase2 = true; e.enraged = true; e.state = 'roar'; e.t = 60; e.chain = null; e.strike = null;
+        if(e.T.summons && !e.summoned){ e.summoned = true; for(const sx of [-4, 4]){ const a = spawnEnemy('drowned', { x:e.x + sx, z:e.z + 2, force:true, noLock:true }); if(a){ a.sealed = true; a.cool = 90; } } log(e.name + ' calls the drowned.', 'lose', 4000); }
       }
       if(e.T.rival && !e.finalStand && e.hp < e.maxHp * 0.32 && e.state !== 'bladelock'){ rivalEscape(e); continue; }
       if(e.home && !e.idle && P.alive && (Math.hypot(e.x - e.home.x, e.z - e.home.z) > 26 || dist(e, P) > 24)) disengage(e);
@@ -2565,6 +2735,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       }
       e.kx *= 0.82; e.kz *= 0.82;
       e.x += e.vx + e.kx; e.z += e.vz + e.kz;
+      if(AREA && AREA.water && inWater(e)){ e.x -= e.vx * 0.3; e.z -= e.vz * 0.3; }
       confine(e);
       if(e.y > 0 || e.vy){ e.vy -= 0.0062; e.y += e.vy; if(e.y <= 0){ if(e.vy < -0.06){ dust(e.x, e.z, 6); sfx('land'); } e.y = 0; e.vy = 0; } }
       if(e.mem && e.age % 300 === 0 && !e.T.rival) for(const k in e.mem) e.mem[k] = Math.floor(e.mem[k] / 2);
@@ -2590,6 +2761,15 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const b = newPose();
     if(!P.alive) return [Object.assign(b, { lean:-0.3, crouch:0.5, armUp:-0.6, ext:0.2 }), 0.15];
     if(BL){ const tr = Math.sin(frameNo * 0.9) * 0.025; const p = LOCK_POSE(1); p.armUp += tr; p.lean += BL.v * 0.08; return [Object.assign(b, p), 0.4]; }
+    // execution finisher: wind up, then one decisive strike
+    if(P.finT > 0){
+      const k = P.finT / 34, early = k > 0.55;
+      if(P.finType === 'cleave') return [Object.assign(b, early ? { lean:-0.3, crouch:0.35, armUp:2.3, armYaw:0.1, ext:0.5, tilt:0.8, stride:-0.3 } : { lean:0.75, crouch:0.6, armUp:-0.7, armYaw:0, ext:1, tilt:0.1, stride:1 }), early ? 0.35 : 0.8];
+      if(P.finType === 'cross') return [Object.assign(b, early ? { lean:-0.1, crouch:0.4, armUp:0.4, armYaw:1.5, ext:0.4, tilt:0.2, stride:-0.2 } : { lean:0.6, crouch:0.5, armUp:0.3, armYaw:-1.5, ext:1, tilt:0.1, stride:1 }), early ? 0.35 : 0.8];
+      return [Object.assign(b, early ? { lean:-0.25, crouch:0.45, armUp:0.15, armYaw:0.35, ext:0, tilt:0, stride:-0.5 } : { lean:0.8, crouch:0.5, armUp:0.12, armYaw:0, ext:1, tilt:0, stride:1.1 }), early ? 0.35 : 0.85];
+    }
+    // plunging: blade turned down, driving into the ground
+    if(P.plunge) return [Object.assign(b, { lean:0.5, crouch:0.2, tuck:0.4, armUp:1.4, armYaw:0, ext:0.9, tilt:-1.3, stride:0 }), 0.5];
     if(P.dodgeT > 0) return [Object.assign(b, { lean:0.5, crouch:0.8, tuck:0.9, armUp:-0.3, ext:0.2, stride:0 }), 0.5];
     if(P.drinkT > 0 || P.useT > 0) return [Object.assign(b, { lean:-0.15, crouch:0.16, armUp:-0.5, armYaw:0.6, ext:0.3, tilt:0.3, stride:0.1 }), 0.35];
     // throwing a knife: the off hand whips forward
@@ -2638,7 +2818,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(e.state === 'bladelock'){ const p = LOCK_POSE(-1); p.armUp += Math.sin(frameNo * 0.8 + 1) * 0.025; if(BL) p.lean -= BL.v * 0.08; return [Object.assign(b, p), 0.4]; }
     if(e.armRecoil > 0 && e.state !== 'attack') return [recoilPose(b, e.recoilSide), 0.85];
     switch(e.state){
-      case 'stun': return [Object.assign(b, { lean:-0.3 - e.recoil * 0.5, crouch:0.12, armUp:-0.4, armYaw:0.7, ext:0.2, tilt:0.3, stride:0 }), 0.4];
+      case 'stun': if(e.rising && e.t > 40) return [Object.assign(b, { lean:0.6, crouch:1.9, armUp:-1.2, armYaw:0.6, ext:0.2, tilt:0.3, stride:0 }), 0.12]; e.rising = false; return [Object.assign(b, { lean:-0.3 - e.recoil * 0.5, crouch:0.12, armUp:-0.4, armYaw:0.7, ext:0.2, tilt:0.3, stride:0 }), 0.4];
       case 'recoil': return [recoilPose(b, e.recoilSide), 0.6];
       case 'parry': return [Object.assign(b, { lean:0.08, crouch:0.24, armUp:0.75, armYaw:-0.2, ext:0.75, tilt:0.95, swordYaw:1.05, stride:0.4 }), 0.7];
       case 'block': return [Object.assign(b, { lean:-0.04 - e.recoil * 0.4, crouch:0.3, armUp:0.55, armYaw:-0.25, ext:0.55, tilt:0.2, swordYaw:1.35, stride:0.35 }), 0.45];
@@ -2944,6 +3124,35 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(m === 'trial'){ runFrames = 0; enterRoom(0); }
     else { $('roomLabel').textContent = 'Arena'; setTheme(0); spawnTimer = 30; }
   }
+  // ----- death recap: what killed you, and one thing to try next time -----
+  function noteHit(e, st, kind){
+    const m = e && curMove(e);
+    if(!kind) kind = st.type === 'grab' ? 'grab' : st.type === 'sweep' ? (m && m.leap ? 'leap' : 'sweep') : st.type === 'thrust' ? 'thrust' : st.bash ? 'bash'
+      : m && m.skill ? 'skill' : st.heavy ? (e.wpn === 'axe' ? 'axe' : 'heavy') : 'light';
+    P.lastHit = { name:e ? e.name : 'something', kind, counter:false, type:e ? e.type : '' };
+  }
+  const RECAP = {
+    light:   ['a quick cut', 'Light strings have a rhythm. Parry the first hit and the rest of the chain stops, or clash into it as it releases.'],
+    heavy:   ['a heavy swing', 'Heavies come late on purpose. Wait for the release, then parry or roll. Parrying a heavy starts a strength contest.'],
+    axe:     ['an axe overhead', 'An axe\'s heavy swing can\'t be deflected. Roll through it, or block and eat the chip damage.'],
+    sweep:   ['a low sweep', 'Low crouch with the blade dragged back means a sweep. Jump it. Blocking and parrying don\'t help.'],
+    thrust:  ['a thrust', 'A blade pulled back at the hip is a thrust. It goes through your block: sidestep, roll, or parry it.'],
+    grab:    ['a grab', 'A free hand reaching for you is a grab. Roll, or parry at the exact moment it lands to reverse it into a throw.'],
+    skill:   ['a sword skill', 'A glowing blade means a sword skill. Every hit of it can be deflected, and deflecting them all teaches it to you.'],
+    leap:    ['a leaping slam', 'When they leap, jump the shockwave as they land.'],
+    bash:    ['a shield bash', 'Shield bashes chew through your guard. Parry them or step out of range.'],
+    mace:    ['a mace through your guard', 'Blocking a mace drains your guard fast. Deflect it instead.'],
+    blocked: ['damage through your guard', 'Holding block only delays it. Watch your guard bar and parry to restore your footing.'],
+    execute: ['an execution', 'Your guard broke and they finished you. Deflect more and block less, or roll out when the bar gets high.'],
+    clash:   ['a lost clash', 'You lost a strength contest. Win more clashes with STR, the Rooted stance, or a heavier weapon, or avoid parrying their heavies.'],
+    roar:    ['a roar', 'Boss roars blast everything close. Back off when they rear up at half health.']
+  };
+  function recapHtml(){
+    const h = P.lastHit; if(!h) return '';
+    const r = RECAP[h.kind] || RECAP.light;
+    const tip = h.counter ? 'You were hit during your own windup (a counter-hit), which hurts more. Don\'t start a swing into an enemy who\'s already swinging unless you\'re timing a clash.' : r[1];
+    return '<p class="recap"><b>' + h.name + '</b> got you with ' + r[0] + (h.counter ? ', as a counter-hit' : '') + '.<br><span>' + tip + '</span></p>';
+  }
   function onDeath(){
     deaths++;
     let html;
@@ -2963,6 +3172,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       html = '<h2>You fell</h2><p>Cut down in the ' + ROOMS[roomIdx].name + '. The Trial resets. Your skills stay, a bit of your strength doesn\'t.</p><div class="lines">' + lines.join('') + '</div><p>Press R to start again at the Gatehouse.</p>';
     } else if(mode === 'world') html = worldDeath();
     else html = '<h2>You fell</h2><p>Kills this run: ' + kills + '. Press R to go again.</p>';
+    html = html.replace('</h2>', '</h2>' + recapHtml());
     setTimeout(() => { if(!P.alive){ $('deathCard').innerHTML = html; $('deathOverlay').hidden = false; } }, 1000);
   }
   function winRun(){
@@ -2988,7 +3198,6 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   }
 
   // ---------- the world: Emberhold (town), the Ashen Wilds, gear, Vesk, saves ----------
-  const SAVE_KEY = 'clashTrial3d.save.v1';
   const GOLD = { knight:22, duelist:20, shield:28, spear:22, assassin:26, brute:40, captain:120, reaver:30, sentinel:36 };
   const newRivalState = () => ({ enc:0, mem:{}, done:false, grudge:null });
   const W = { respawn:'town', rivals:{ vesk:newRivalState(), gorrun:newRivalState() }, warden:false, rimeKing:false, twins:false, rematch:{}, quests:{}, bounties:[], stain:null, camps:0 };
@@ -3142,13 +3351,115 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       counter(){ return [M({ wind:14, hold:[0,5], heavy:true, active:8, rec:30, range:3.0, cone:0.85, dmg:28 })]; }
     }
   });
-  Object.assign(GOLD, { zealot:34, executioner:48 });
+  Object.assign(GOLD, { zealot:34, executioner:48, drowned:44, tidecaller:40, hunter:200, chestMimic:60, mimic:120 });
+  Object.assign(TYPES, {
+    // Floor 4: they get back up unless the last blow is a deathblow
+    drowned: {
+      name:'Drowned Knight', radius:0.5, scale:1.15, bulk:1.15, hp:200, str:15, def:13, spd:0.03, turn:0.06, tellTurn:0.024, pref:1.9, postureMax:95, revive:true,
+      body:0x2e4a4a, dark:0x142424, trim:0x6aa8a0, blade:0x9ab8b0, eye:0x7affe8, wlen:1.05, wwidth:1.3, helm:'knight', cape:0x0e2222, skillColor:0x7affe8, weaponHp:6,
+      ready:0.3, parry:0.15, block:0.35, back:0.03, reactCd:44, cool:30, poise:true, exchange:0.4,
+      tip:'Drowned Knight: slow, heavy, and it rises again unless your last blow is a deathblow. Break its posture to keep it down.',
+      choose(e, d){
+        if(d > 3) return null;
+        const r = Math.random();
+        if(r < 0.3) return [M({ wind:28, hold:[6,30], heavy:true, active:8, rec:34, range:2.6, cone:0.8, dmg:24 })];
+        if(r < 0.5) return [M({ wind:18, hold:[0,10], type:'grab', active:8, range:1.8, cone:0.7, dmg:24, rec:32, step:0.05 })];
+        return [M({ wind:12, hold:[1,8], range:2.3, dmg:12, rec:4, side:1 }), M({ wind:10, hold:[14,24], range:2.3, dmg:12, rec:22, side:-1 })];
+      },
+      reply(){ return [M({ wind:10, hold:[0,4], range:2.3, dmg:12, rec:18 })]; },
+      counter(){ return [M({ wind:12, hold:[0,4], range:2.3, dmg:12, rec:20 })]; }
+    },
+    tidecaller: {
+      name:'Tidecaller', radius:0.4, scale:1.0, bulk:0.9, hp:150, str:13, def:9, spd:0.06, turn:0.1, tellTurn:0.04, pref:2.5, postureMax:100,
+      body:0x2a5a6a, dark:0x10262e, trim:0xa8e8f0, blade:0xd8f4ff, eye:0xa8e8f0, wlen:2.0, wwidth:0.5, helm:'hood', skillColor:0xa8e8f0, weaponHp:4,
+      ready:0.3, parry:0.2, block:0.15, back:0.4, reactCd:34, cool:22, poise:false, exchange:0.4,
+      tip:'Tidecaller: spear thrust chains from range. Parry the first thrust and the chain stalls. It backs off when you close in.',
+      choose(e, d){
+        if(d < 1.5) return Math.random() < 0.5 ? [M({ wind:8, hold:[0,4], range:1.6, dmg:9, rec:18, side:1, step:-0.07 })] : null;
+        if(d > 4.2) return d < 7 && Math.random() < 0.4 ? [M({ wind:16, hold:[2,12], type:'thrust', active:12, dash:0.22, rec:30, range:1.4, cone:0.4, dmg:16 })] : null;
+        const n = 2 + (Math.random() < 0.5 ? 1 : 0), c = [];
+        for(let i = 0; i < n; i++) c.push(M({ wind:i ? 7 : 12, hold:[0,4], type:'thrust', active:6, range:3.0, cone:0.32, dmg:10, rec:i === n-1 ? 24 : 3, step:0.02 }));
+        return c;
+      },
+      reply(){ return [M({ wind:8, hold:[0,3], type:'thrust', active:6, range:3.0, cone:0.32, dmg:10, rec:18 })]; },
+      counter(){ return [M({ wind:9, hold:[0,3], type:'thrust', active:6, range:3.0, cone:0.32, dmg:10, rec:20 })]; }
+    },
+    deepMother: {
+      name:'The Drowned Mother', radius:0.78, scale:1.75, bulk:1.4, hp:1500, str:21, def:17, spd:0.032, turn:0.06, tellTurn:0.024, pref:3.0, postureMax:300, boss:true, floorBoss:true, summons:true,
+      body:0x1e3a40, dark:0x0a1618, trim:0x7affe8, blade:0xb8e8e0, eye:0x7affe8, wlen:2.5, wwidth:0.9, helm:'hood', cape:0x0a2024, skillColor:0x7affe8, weaponHp:18, armored:true,
+      ready:0.3, p2Ready:0.4, parry:0.2, block:0.25, back:0.05, reactCd:40, cool:18, poise:true, exchange:0.5,
+      tip:'The Drowned Mother: a long trident, wide sweeps you have to jump, and lunges across the ring. At half health she calls the drowned: deathblow them so they stay down.',
+      choose(e, d){
+        const p2 = e.phase2, r = Math.random();
+        const sweep = last => M({ wind:last ? 12 : 20, hold:[0,6], type:'sweep', active:7, rec:last ? 30 : 2, range:3.9, cone:Math.PI, dmg:20 });
+        const lunge = () => M({ wind:18, hold:[2,16], type:'thrust', active:14, dash:0.25, rec:30, range:1.6, cone:0.4, dmg:26 });
+        const jabs = n => { const c = []; for(let i = 0; i < n; i++) c.push(M({ wind:i ? 6 : 12, hold:i === 2 ? [12,22] : [0,3], type:'thrust', active:6, range:3.4, cone:0.32, dmg:14, rec:i === n-1 ? 22 : 3 })); return c; };
+        if(d > 4.5) return d < 9 && r < 0.6 ? [lunge()] : null;
+        if(r < 0.2) return p2 ? [sweep(false), sweep(true)] : [sweep(true)];
+        if(r < 0.4) return jabs(p2 ? 5 : 3);
+        if(r < 0.55) return [M({ wind:30, hold:p2 ? [8,40] : [6,32], heavy:true, active:8, rec:30, range:3.4, cone:0.8, dmg:32 })];
+        if(r < 0.68) return [M({ wind:20, hold:[0,10], type:'grab', active:8, range:2.3, cone:0.7, dmg:34, rec:34, step:0.07 })];
+        if(r < 0.8){ const c = []; for(let i = 0; i < 5; i++) c.push(M({ wind:i ? 4 : 12, hold:i ? [0,1] : [3,10], skill:true, range:3.0, dmg:13, rec:i === 4 ? 44 : 2, side:i % 2 ? -1 : 1 })); return c; }
+        return [lunge()];
+      },
+      reply(){ return [M({ wind:9, hold:[0,4], type:'thrust', active:6, range:3.4, cone:0.32, dmg:14, rec:18 })]; },
+      counter(){ return [M({ wind:10, hold:[1,5], range:3.0, dmg:14, rec:20 })]; }
+    },
+    // fights with YOUR combat deck and your Q skill
+    mimic: {
+      name:'The Mirror', radius:0.38, scale:1.0, bulk:1.0, hp:260, str:15, def:12, spd:0.058, turn:0.1, tellTurn:0.045, pref:1.8, postureMax:130,
+      body:0xd8dce4, dark:0x6a7080, trim:0xffffff, blade:0xf0f4ff, eye:0xffffff, wlen:0.95, wwidth:1, helm:'knight', cape:0x8a90a0, skillColor:0xffffff, weaponHp:8,
+      ready:0.5, parry:0.3, block:0.2, back:0.15, reactCd:32, cool:20, poise:false, exchange:0.7,
+      tip:'The Mirror: it fights with your own combat deck, your rhythm and your favorite skill. Beat yourself by fighting differently.',
+      choose(e, d){
+        if(d > 2.8) return d < 4.5 && Math.random() < 0.3 ? [M({ wind:12, hold:[2,10], type:'thrust', active:9, dash:0.18, rec:26, range:1.0, cone:0.5, dmg:13 })] : null;
+        const D = P.deck, r = Math.random();
+        const toM = (id, last, pause) => { const mv = MOVES[id]; return M({ wind:Math.max(5, mv.startup), hold:pause ? [12,20] : [0,3], range:mv.range + 0.1, dmg:mv.dmg * 0.9, rec:last ? 22 : 3, side:mv.side || 1, heavy:!!(mv.big && mv.end), type:mv.pierce ? 'thrust' : 'slash', cone:mv.cone || 1.0, active:mv.pierce ? 8 : 5 }); };
+        if(r < 0.15){ const sk = SKILLS[P.loadout.Q] || SKILLS.fangs, n = sk.hitEvery ? Math.max(2, Math.floor(sk.motion / sk.hitEvery)) : 1, c = [];
+          for(let i = 0; i < n; i++) c.push(M({ wind:i ? 4 : 12, hold:i ? [0,1] : [3,10], skill:true, range:2.3, dmg:sk.dmg * 0.8, rec:i === n-1 ? 40 : 2, side:i % 2 ? -1 : 1 })); return c; }
+        if(r < 0.5) return [toM(D.q1), toM(D.q2), toM(D.q3, true)];
+        if(r < 0.75) return [toM(D.q1), toM(D.q2), toM(D.p2, true, true)];
+        return [toM(D.q1), toM(D.p1, false, true), MOVES[D.p1].follow ? toM('drop', true) : toM(D.q3, true)];
+      },
+      reply(){ return [M({ wind:6, hold:[0,3], range:2.1, dmg:10, rec:14 })]; },
+      counter(){ return [M({ wind:7, hold:[0,3], range:2.1, dmg:10, rec:16 })]; }
+    },
+    chestMimic: {
+      name:'Mimic', radius:0.5, scale:0.95, bulk:1.35, hp:180, str:14, def:10, spd:0.05, turn:0.12, tellTurn:0.05, pref:1.4, postureMax:110,
+      body:0x6a4224, dark:0x3a2414, trim:0xc9a040, blade:0xf0e0c0, eye:0xff3030, wlen:0.4, wwidth:2.2, twoHand:false, helm:'none', skillColor:0xff3030, weaponHp:99,
+      ready:0, parry:0, block:0, back:0.1, reactCd:40, cool:14, poise:true, exchange:0.2,
+      tip:'Mimic: a chest with teeth. All bite, no guard: hit it hard and keep moving.',
+      choose(e, d){
+        if(d > 2.4) return d < 5 ? [M({ wind:10, hold:[0,6], type:'thrust', active:10, dash:0.22, rec:26, range:1.0, cone:0.6, dmg:14 })] : null;
+        return Math.random() < 0.4 ? [M({ wind:14, hold:[0,8], type:'grab', active:8, range:1.6, cone:0.8, dmg:22, rec:28, step:0.06 })]
+          : [M({ wind:7, hold:[0,4], range:1.5, dmg:9, rec:3, side:1 }), M({ wind:5, hold:[0,3], range:1.5, dmg:9, rec:3, side:-1 }), M({ wind:5, hold:[0,3], range:1.5, dmg:9, rec:20, side:1 })];
+      },
+      reply(){ return [M({ wind:6, hold:[0,3], range:1.5, dmg:9, rec:14 })]; },
+      counter(){ return [M({ wind:6, hold:[0,3], range:1.5, dmg:9, rec:14 })]; }
+    },
+    // tracks you across a region and joins whatever fight you're in
+    hunter: {
+      name:'The Hunter', radius:0.42, scale:1.08, bulk:1.0, hp:320, str:16, def:12, spd:0.066, turn:0.12, tellTurn:0.05, pref:1.9, postureMax:150,
+      body:0x3a2a22, dark:0x1a120e, trim:0xb87a4a, blade:0xe0d8c8, eye:0xff6a2a, wlen:1.0, wwidth:0.9, twoHand:false, helm:'hood', cape:0x2a1a12, skillColor:0xff6a2a, weaponHp:9, dual:true,
+      ready:0.5, parry:0.3, block:0.1, back:0.2, reactCd:30, cool:16, poise:true, exchange:0.7,
+      tip:'The Hunter: tracks you across the region and joins any fight. His dash thrust from range leaves him wide open if you sidestep it.',
+      choose(e, d){
+        if(d > 3) return d < 9 && Math.random() < 0.6 ? [M({ wind:14, hold:[2,10], type:'thrust', active:14, dash:0.26, rec:34, range:1.2, cone:0.45, dmg:20 })] : null;
+        const n = 3 + (Math.random() < 0.5 ? 1 : 0), late = 1 + Math.floor(Math.random() * (n - 1)), c = [];
+        for(let i = 0; i < n; i++) c.push(M({ wind:i ? 5 : 9, hold:i === late ? [12,22] : [0,3], range:2.1, dmg:13, rec:i === n-1 ? 20 : 2, side:i % 2 ? -1 : 1 }));
+        if(Math.random() < 0.3) c.push(M({ wind:24, hold:[4,20], heavy:true, active:8, rec:30, range:2.4, cone:0.8, dmg:26 }));
+        return c;
+      },
+      reply(){ return [M({ wind:5, hold:[0,2], range:2.1, dmg:13, rec:3, side:1 }), M({ wind:5, hold:[0,2], range:2.1, dmg:13, rec:16, side:-1 })]; },
+      counter(){ return [M({ wind:6, hold:[0,3], range:2.1, dmg:13, rec:16 })]; }
+    }
+  });
 
   const AREAS = {
     town: { id:'town', name:'Emberhold', sub:'Floor 1 · the last safe town', bounds:{ r:15 }, surface:'stone', bg:0x15111c, fog:[16, 50], hemi:[0xc0a8c8, 0x3a2a22, 0.8], moon:0.55,
-            spawn:{ x:0, z:-10, yaw:0 }, from:{ x:0, z:11.6, yaw:Math.PI }, obstacles:[], inter:[], exits:[], labels:[], anim:[], sky:[0x06050a, { stars:true }] },
+            spawn:{ x:0, z:-10, yaw:0 }, from:{ x:0, z:11.6, yaw:Math.PI }, obstacles:[], inter:[], exits:[], labels:[], anim:[], sky:[0x06050a, { stars:true }], daySky:[0x2a4060, 0x6a7a8a] },
     wilds:{ id:'wilds', name:'The Ashen Wilds', sub:'Floor 1 · the road to the Warden', bounds:{ hw:58, hh:60 }, bg:0x1b1820, fog:[18, 60], hemi:[0x9a9cc0, 0x2a2620, 0.75], moon:0.95,
-            spawn:{ x:0, z:-54, yaw:0 }, from:{ x:0, z:55, yaw:Math.PI }, obstacles:[], inter:[], exits:[], labels:[], anim:[],
+            spawn:{ x:0, z:-54, yaw:0 }, from:{ x:0, z:55, yaw:Math.PI }, obstacles:[], inter:[], exits:[], labels:[], anim:[], daySky:[0x2a4060, 0x6a7a8a],
             seed:1337, shrine:{ x:-4, z:-6 }, respawnKey:'shrine',
             path:[[0,-60],[3,-44],[6,-30],[-4,-6],[-6,10],[2,28],[0,37]],
             camps:[
@@ -3161,7 +3472,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
               { id:'captain', name:'Captain\'s Post', x:26, z:32, foes:['captain'], prop:'banners' }
             ],
             boss:{ x:0, z:47, type:'ashWarden', flag:'warden', title:['THE ASHEN WARDEN', 'Keeper of the first floor'] },
-            rival:'vesk', southTo:'town', northTo:'rime', sky:[0x05040a, { stars:true }],
+            rival:'vesk', southTo:'town', northTo:'rime', sky:[0x05040a, { stars:true }], daySky:[0x2a4060, 0x6a7a8a],
             look:{ ground:'#353b2e', dots:['rgba(70,82,56,0.5)', 'rgba(40,46,34,0.6)', 'rgba(96,90,78,0.35)'], greens:[0x2a3a2a, 0x24342a, 0x31402c], ash:0x5a544c, ashChance:0.22, rock:0x5d5a60, wall:0x4c4650, dirt:'#4a4034' } },
     rime:{ id:'rime', name:'The Rime Pass', sub:'Floor 2 · where the cold keeps the dead', bounds:{ hw:52, hh:60 }, surface:'snow', from:{ x:0, z:55, yaw:Math.PI }, bg:0x18202c, fog:[16, 56], hemi:[0xb8c8e8, 0x3a4250, 0.8], moon:1.05,
             spawn:{ x:0, z:-54, yaw:0 }, obstacles:[], inter:[], exits:[], labels:[], anim:[],
@@ -3177,7 +3488,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
               { id:'vanguard', name:'Vanguard Post', x:-22, z:38, foes:['captain','sentinel'], prop:'banners' }
             ],
             boss:{ x:0, z:47, type:'rimeKing', flag:'rimeKing', title:['THE RIMEBORN KING', 'He was crowned in the cold, and never left'] },
-            rival:'gorrun', southTo:'wilds', northTo:'cinder', sky:[0x070c18, { stars:true }],
+            rival:'gorrun', southTo:'wilds', northTo:'cinder', sky:[0x070c18, { stars:true }], daySky:[0x3a5a80, 0x9aaabb],
             look:{ ground:'#8a95a4', dots:['rgba(220,230,240,0.55)', 'rgba(110,122,138,0.5)', 'rgba(170,185,200,0.45)'], greens:[0x9eb0b8, 0x7f949c, 0xb8c6cc], ash:0x4a4440, ashChance:0.25, rock:0x7a8290, wall:0x6a7280, dirt:'#5a6270' } },
     cinder:{ id:'cinder', name:'Cinderfall', sub:'Floor 3 · the city that never stopped burning', bounds:{ hw:52, hh:60 }, surface:'ash', bg:0x241210, fog:[14, 54], hemi:[0xd08a6a, 0x3a1a10, 0.7], moon:0.75,
             spawn:{ x:0, z:-54, yaw:0 }, from:{ x:0, z:55, yaw:Math.PI }, obstacles:[], inter:[], exits:[], labels:[], anim:[],
@@ -3193,12 +3504,30 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
               { id:'pyre', name:'The Pyre', x:24, z:36, foes:['captain','zealot','reaver'], prop:'banners' }
             ],
             boss:{ x:0, z:47, type:['ashTwin', 'emberTwin'], flag:'twins', title:['ASH & EMBER', 'The twin wardens of the burning city'] },
-            rival:null, southTo:'rime', northTo:null, sky:[0x0c0402, { stars:false, glow:0xff5a1a, moonTint:0xff9a70 }],
-            look:{ ground:'#2a2220', dots:['rgba(60,40,32,0.6)', 'rgba(16,10,8,0.6)', 'rgba(150,64,30,0.35)'], greens:[0x2a2220, 0x1e1816, 0x332824], ash:0x4a2a1a, ashChance:0.5, rock:0x4a3a36, wall:0x5a4a44, dirt:'#3a2e28' } }
+            rival:null, southTo:'rime', northTo:'sanctum', sky:[0x0c0402, { stars:false, glow:0xff5a1a, moonTint:0xff9a70 }], daySky:[0x2a120a, 0x6a2e1a],
+            look:{ ground:'#2a2220', dots:['rgba(60,40,32,0.6)', 'rgba(16,10,8,0.6)', 'rgba(150,64,30,0.35)'], greens:[0x2a2220, 0x1e1816, 0x332824], ash:0x4a2a1a, ashChance:0.5, rock:0x4a3a36, wall:0x5a4a44, dirt:'#3a2e28' } },
+    sanctum:{ id:'sanctum', name:'The Drowned Sanctum', sub:'Floor 4 · a temple the sea took back', bounds:{ hw:52, hh:60 }, surface:'stone', bg:0x0c1a1e, fog:[12, 50], hemi:[0x7ab8c0, 0x14262a, 0.75], moon:0.7,
+            spawn:{ x:0, z:-54, yaw:0 }, from:{ x:0, z:55, yaw:Math.PI }, obstacles:[], inter:[], exits:[], labels:[], anim:[],
+            seed:9191, shrine:{ x:5, z:-4 }, respawnKey:'sanctum', ruins:true, trees:50, pools:true,
+            path:[[0,-60],[-5,-42],[3,-24],[-2,-6],[6,12],[-3,28],[0,37]],
+            camps:[
+              { id:'steps', name:'Sunken Steps', x:-16, z:-46, foes:['drowned','tidecaller'], prop:null },
+              { id:'nave', name:'Flooded Nave', x:24, z:-38, foes:['drowned','drowned'], prop:'fort' },
+              { id:'cloister2', name:'Tide Cloister', x:-30, z:-16, foes:['tidecaller','tidecaller','assassin'], prop:'banners' },
+              { id:'altar2', name:'Broken Altar', x:30, z:-2, foes:['drowned','sentinel'], prop:'quarry' },
+              { id:'crypt', name:'Salt Crypt', x:-28, z:18, foes:['drowned','executioner','tidecaller'], prop:'fort' },
+              { id:'bell', name:'Bell Tower', x:28, z:24, foes:['reaver','drowned','zealot'], prop:'tower' },
+              { id:'choir', name:'Drowned Choir', x:-20, z:38, foes:['captain','drowned','drowned'], prop:'banners' }
+            ],
+            boss:{ x:0, z:47, type:'deepMother', flag:'deep', title:['THE DROWNED MOTHER', 'She sings, and the dead stand up'] },
+            rival:null, southTo:'cinder', northTo:null, sky:[0x040c10, { stars:'dim', glow:0x1a6a6a, moonTint:0xa8e8f0 }], daySky:[0x0e2a30, 0x2a5a5a],
+            look:{ ground:'#22302e', dots:['rgba(40,70,70,0.55)', 'rgba(14,22,22,0.6)', 'rgba(90,120,110,0.35)'], greens:[0x1e3a36, 0x22302c, 0x2a4a40], ash:0x3a4a48, ashChance:0.4, rock:0x4a5a5c, wall:0x4a5e60, dirt:'#2e3a38' } },
+    pit:{ id:'pit', name:'The Pit', sub:'Emberhold\'s fighting ring', bounds:{ r:12.5 }, arena:true, surface:'stone', bg:0x120a0a, fog:[14, 40], hemi:[0xc49a8f, 0x2a2030, 0.8], moon:0.8,
+            spawn:{ x:0, z:-8, yaw:0 }, obstacles:[], inter:[], exits:[], labels:[], anim:[], sky:[0x050204, { stars:true }], daySky:[0x050204, 0x120a0a] }
   };
   // kept for the test harness and old references: Floor 1's layout
   const CAMPS = AREAS.wilds.camps, PATH = AREAS.wilds.path, SHRINE_W = AREAS.wilds.shrine, BOSS_C = AREAS.wilds.boss;
-  for(const k of ['wilds','rime','cinder']) for(const c of AREAS[k].camps){ c.remaining = c.foes.slice(); c.live = []; c.eliteType = null; }
+  for(const k of ['wilds','rime','cinder','sanctum']) for(const c of AREAS[k].camps){ c.remaining = c.foes.slice(); c.live = []; c.eliteType = null; }
   const RIVALS = {
     vesk:   { type:'rival', area:'wilds', spots:[{ x:16, z:-22 }, { x:-44, z:-10 }, { x:12, z:20 }], reward:{ kind:'weapon', id:'fang' },
               lines:[['"Another climber. Let\'s see if you\'re worth remembering."', '"Not bad. I\'ll know you better next time."'],
@@ -3227,7 +3556,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     sentinels: { text:'Topple 2 Sentinels', kind:'kill', type:'sentinel', n:2, gold:160, floor:2 },
     elites:    { text:'Defeat 2 elites', kind:'elite', n:2, gold:180 },
     zealots:   { text:'Silence 3 Cinder Zealots', kind:'kill', type:'zealot', n:3, gold:200, floor:3 },
-    execs:     { text:'Fell 2 Executioners', kind:'kill', type:'executioner', n:2, gold:240, floor:3 }
+    execs:     { text:'Fell 2 Executioners', kind:'kill', type:'executioner', n:2, gold:240, floor:3 },
+    drowned:   { text:'Keep 3 Drowned Knights down', kind:'kill', type:'drowned', n:3, gold:280, floor:4 },
+    tides:     { text:'Silence 3 Tidecallers', kind:'kill', type:'tidecaller', n:3, gold:260, floor:4 }
   };
 
   // ----- small builders -----
@@ -3258,7 +3589,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const L = new THREE.PointLight(0xffe9b0, 1.5, 10, 2); L.position.set(x, 1.5, z); G.add(L);
     A.anim.push(t => { orb.position.y = 1.3 + Math.sin(t * 3) * 0.06; });
     A.obstacles.push({ x, z, r:0.75 });
-    A.inter.push({ x, z, r:2.4, verb:'Rest at the shrine', icon:'shrine', act:() => rest(where) });
+    A.inter.push({ x, z, r:2.4, verb:'Use the shrine', icon:'shrine', act:() => { shrineAt = where; ngArmed = false; openTalk('shrine'); } });
     A.labels.push(label('Shrine', x, 2.0, z, 14));
   }
   const dirtMat = base => new THREE.MeshStandardMaterial({ roughness:1, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2,
@@ -3668,6 +3999,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
         snow.position.set(P.x, 0, P.z); geo.attributes.position.needsUpdate = true;
       });
     }
+    buildChests(G, A, R, free);
+    if(A.pools) buildPools(G, A, R, free);
     A.fireSpots = fires;
     // only the fires nearest you get a real light
     const pool = [];
@@ -3689,7 +4022,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   }
 
   // ----- moving between areas -----
-  const REGION_IDS = ['wilds', 'rime', 'cinder'];
+  const REGION_IDS = ['wilds', 'rime', 'cinder', 'sanctum'];
   const allCamps = () => REGION_IDS.flatMap(k => AREAS[k].camps);
   // optimization: scenery never moves, so stop three.js recomputing its matrices every frame
   function freezeStatic(G){
@@ -3703,17 +4036,18 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function enterArea(id, at){
     clearField(); for(const c of allCamps()) c.live = []; clearLoot();
     for(const f of floats) f.el.remove(); floats.length = 0;
-    if(!WORLD_GROUPS[id]){ WORLD_GROUPS[id] = id === 'town' ? buildTown() : buildRegion(id); questProps(id); freezeStatic(WORLD_GROUPS[id]); }
+    if(!WORLD_GROUPS[id]){ WORLD_GROUPS[id] = id === 'town' ? buildTown() : id === 'pit' ? buildPit() : buildRegion(id); questProps(id); freezeStatic(WORLD_GROUPS[id]); }
     for(const k of REGION_IDS){ AREAS[k].seal = null; if(AREAS[k].sealMesh) AREAS[k].sealMesh.visible = false; }
     AREA = AREAS[id];
-    arenaDecor.visible = false; gate.visible = false; altar.visible = false;
+    arenaDecor.visible = !!AREA.arena; gate.visible = false; altar.visible = false;
     for(const k in WORLD_GROUPS) WORLD_GROUPS[k].visible = k === id;
     for(const k in AREAS) for(const L of AREAS[k].labels) L.el.style.display = 'none';
     scene.background.setHex(AREA.bg); scene.fog.color.setHex(AREA.bg); scene.fog.near = AREA.fog[0]; scene.fog.far = AREA.fog[1];
     hemi.color.setHex(AREA.hemi[0]); hemi.groundColor.setHex(AREA.hemi[1]); hemi.intensity = AREA.hemi[2]; moon.intensity = AREA.moon;
     moon.color.setHex(id === 'cinder' ? 0xffb08a : id === 'rime' ? 0xd0e0ff : 0xc8d0ff);
-    setSky(AREA.sky[0], AREA.bg, AREA.sky[1]);
-    endSpar(true);
+    applyDaylight(true);
+    endSpar(true); hunterMet = false; P.locketUsed = false;
+    if(id !== 'pit') pitState = null;
     const s = at || AREA.spawn;
     Object.assign(P, { x:s.x, z:s.z, px:s.x, pz:s.z, yaw:s.yaw, vx:0, vz:0, kx:0, kz:0, skill:null }); cam.yaw = s.yaw;
     $('roomLabel').textContent = AREA.name;
@@ -3721,12 +4055,19 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     rivalMet = {};
     saveGame();
   }
+  // the Pit reuses the Trial's round arena; its pillars block the camera
+  function buildPit(){
+    const A = AREAS.pit, G = new THREE.Group(); scene.add(G);
+    A.camBlock = []; for(let i = 0; i < 12; i++){ const a = i / 12 * TAU; A.camBlock.push({ x:Math.sin(a) * (ARENA + 2), z:Math.cos(a) * (ARENA + 2), r:0.6 }); }
+    return G;
+  }
   function travel(id, at){ worldT = 44; worldDest = { id, at }; $('fade').style.opacity = 1; }
   // camps refill; about a quarter of them come back led by an elite
   function resetCamps(id){
-    for(const k of id ? [id] : REGION_IDS) for(const c of AREAS[k].camps){
+    for(const k of id ? [id] : REGION_IDS) for(const c of AREAS[k].camps || []){
       c.remaining = c.foes.slice(); c.live = [];
       c.eliteType = Math.random() < 0.25 ? c.foes[Math.floor(Math.random() * c.foes.length)] : null;
+      c.mimic = k !== 'wilds' && Math.random() < 0.06;
     }
   }
   function despawn(list){
@@ -3800,15 +4141,17 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
           const wpn = AREA.id !== 'wilds' && ['knight','captain','shield','sentinel'].includes(t) && Math.random() < 0.35 ? (Math.random() < 0.5 ? 'mace' : 'axe') : null;
           const e = spawnEnemy(t, { x, z, idle:true, force:true, camp:c, yaw:Math.atan2(c.x - x, c.z - z), wpn });
           if(e && !eliteDone && t === c.eliteType){ makeElite(e); eliteDone = true; }
+          if(e && isNight() && k === 0){ e.maxHp = e.hp = Math.round(e.maxHp * 1.15); e.str += 1; }
           if(e) c.live.push(e);
         });
+        if(c.mimic){ const m = spawnEnemy('mimic', { x:c.x + 1.2, z:c.z - 3.2, idle:true, force:true, camp:c }); if(m){ c.live.push(m); m.name = 'The Mirror'; } }
       } else if(c.live.length && d > 46 && c.live.every(e => !e.alive || (e.idle && !e.returning))){
         despawn(c.live); c.live = [];
       }
     }
   }
   function worldKill(e){
-    const g = Math.round((GOLD[e.type] || 0) * (e.elite ? 3 : 1) * (hasT('seal') ? 1.15 : 1));
+    const g = Math.round((GOLD[e.type] || 0) * (e.elite ? 3 : 1) * (1 + 0.15 * tPow('seal')));
     if(g){ P.gold += g; const c = chestOf(e); floatText(c.x, c.y + 0.9, c.z, '+' + g + ' gold', '#ffd166', 1); }
     rollLoot(e);
     bountyNote('kill', e.type);
@@ -3822,6 +4165,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       }
     }
     if(e.T.floorBoss) bossDown(e);
+    if(e.type === 'chestMimic') chestLoot(e.x, e.z, 3);
     if(e.T.rival) rivalDown(e.T.rival);
   }
 
@@ -3908,6 +4252,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(B.flag === 'warden'){
       P.gold += 500; P.owned.add('cleaver');
       setTimeout(() => showBanner('FLOOR 1 CLEARED', '+500 gold · the Warden\'s Cleaver is yours · the way north is open'), 1200);
+    } else if(B.flag === 'deep'){
+      P.gold += 2000; P.owned.add('abyssal');
+      setTimeout(() => showBanner('FLOOR 4 CLEARED', '+2000 gold · the Abyssal Edge is yours · rest at any shrine to begin New Game+'), 1200);
     } else if(B.flag === 'rimeKing'){
       P.gold += 900; P.owned.add('rimebrand');
       setTimeout(() => showBanner('FLOOR 2 CLEARED', '+900 gold · Rimebrand is yours · the way north is open'), 1200);
@@ -3933,7 +4280,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
 
   // ----- shrines, bounties -----
   function rest(where){
-    P.hp = P.maxHp; P.flasks = flaskCap(); P.posture = 0; W.respawn = where;
+    P.hp = P.maxHp; P.flasks = flaskCap(); P.posture = 0; W.respawn = where; discoverShrine(where); moveMerchant();
     const region = AREA.id !== 'town';
     if(region){ despawn(enemies.filter(e => !e.sealed)); resetCamps(AREA.id); rivalMet = {}; }
     sfx('learn'); sfx('healed');
@@ -3949,7 +4296,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     }
   }
   function newBounty(){
-    const act = W.bounties.map(b => b.id), pool = Object.keys(BOUNTIES).filter(k => !act.includes(k) && (BOUNTIES[k].floor !== 2 || W.warden) && (BOUNTIES[k].floor !== 3 || W.rimeKing));
+    const act = W.bounties.map(b => b.id), pool = Object.keys(BOUNTIES).filter(k => !act.includes(k) && (BOUNTIES[k].floor !== 2 || W.warden) && (BOUNTIES[k].floor !== 3 || W.rimeKing) && (BOUNTIES[k].floor !== 4 || W.twins));
     return { id:pool[Math.floor(Math.random() * pool.length)], prog:0 };
   }
 
@@ -3970,7 +4317,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     it.act(); return true;
   }
   function openMenu(kind){
-    if(paused) return;
+    // a menu can hand off to another (talking to Bram, then opening his forge)
+    if(paused && !menuOpen) return;
     paused = true; menuOpen = kind; $('menuOverlay').hidden = false; renderMenu();
     try{ document.exitPointerLock(); }catch(err){}
   }
@@ -3980,6 +4328,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     $('menuGold').textContent = 'Gold ' + P.gold;
     const list = $('menuList'); list.innerHTML = '';
     if(menuOpen === 'talk'){ renderTalk(list); return; }
+    if(menuOpen === 'merchant'){ renderMerchant(list); return; }
     if(menuOpen === 'smith'){
       $('menuTitle').textContent = 'Bram\'s Forge';
       $('menuSub').textContent = 'Bram doesn\'t look up from the anvil. "Gold first. Bring me scrap and shards and I\'ll sharpen what you\'ve got. And don\'t blame the blade when you whiff."';
@@ -3989,6 +4338,33 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
         const h = document.createElement('div'); h.className = 'sect'; h.textContent = title; list.append(h);
         const grid = document.createElement('div'); grid.className = 'sk'; list.append(grid);
         for(const id in table) gearCard(grid, kind, id, table[id]);
+      }
+      // trinket fusing: two trinkets become one with both effects at 70%
+      list.append(el('div', 'sect', 'Fuse trinkets'));
+      const base = [...P.trinketsOwned].filter(t => !fuseParts(t));
+      const fuseCost = { gold:250, rime:4 };
+      if(base.length < 2) list.append(el('div', 'sub', 'Bring me two trinkets and I\'ll hammer them into one that does both jobs, at a bit less strength each.'));
+      else {
+        const box = el('div', 'deck');
+        const pick = [base[0], base[1]];
+        for(let i = 0; i < 2; i++){
+          const l = el('label', 'panel'); l.append(i ? 'Second' : 'First');
+          l.append(mkSelect(base.map(t => [t, TRINKETS[t].name]), pick[i], v => { pick[i] = v; }));
+          box.append(l);
+        }
+        list.append(box);
+        list.append(el('div', 'sub', 'Cost: ' + costText(fuseCost) + '. Both trinkets are used up. You keep the fused one.'));
+        const row = el('div', 'btns');
+        row.append(btn('Fuse', () => {
+          if(pick[0] === pick[1] || !canPay(fuseCost)) return;
+          const id = 'fuse:' + pick.slice().sort().join('+');
+          P.gold -= fuseCost.gold; P.inv.mats.rime -= fuseCost.rime;
+          for(const t of pick){ P.trinketsOwned.delete(t); P.trinkets = P.trinkets.map(x => x === t ? null : x); }
+          P.trinketsOwned.add(id); const free = P.trinkets.indexOf(null); if(free >= 0) P.trinkets[free] = id;
+          sfx('clang', 1, 1.3); sfx('learn'); showBanner('FUSED: ' + trinketInfo(id).name.toUpperCase(), 'both effects at 70%');
+          renderMenu();
+        }, { disabled:!canPay(fuseCost) }));
+        list.append(row);
       }
     } else {
       $('menuTitle').textContent = 'Bounty Board';
@@ -4089,7 +4465,87 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const ax = !!g.axe;
     R.bladeM.visible = R.tipM.visible = R.fullerM.visible = !ax; R.axeParts.shaft.visible = R.axeParts.head.visible = ax;
     if(ax){ R.axeParts.shaft.scale.y = len * 0.95; R.axeParts.shaft.position.z = len * 0.47 + 0.06; R.axeParts.head.position.set(0, 0.12, len * 0.86); }
+    // off-hand blade
+    const off = offhandW();
+    if(off && !R.offSword){
+      const sw = new THREE.Group(); sw.rotation.order = 'YXZ'; R.armL.hand.add(sw);
+      const bl = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.014, 1), R.mBlade); bl.castShadow = true; sw.add(bl);
+      const gd = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.035, 0.04), R.mats[2]); gd.position.z = 0.05; sw.add(gd);
+      const gp = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.16, 6), R.mats[1]); gp.rotation.x = Math.PI / 2; gp.position.z = -0.05; sw.add(gp);
+      R.offSword = sw; R.offBlade = bl;
+    }
+    R.dual = !!off; R.twoHand = !off;
+    if(R.offSword){ R.offSword.visible = !!off; if(off){ R.offBlade.scale.set(off.width, 1, off.len); R.offBlade.position.z = off.len / 2 + 0.06; } }
   }
+
+  // ----- bestiary: every enemy you meet, the moves you've seen, and a weakness once you've killed a few -----
+  const MOVE_INFO = {
+    light:  ['Quick cuts', 'parry the first and the chain stops, or clash into it'],
+    heavy:  ['Heavy swing', 'comes late on purpose: wait, then parry or roll'],
+    sweep:  ['Low sweep', 'jump it'],
+    thrust: ['Thrust', 'goes through blocks: sidestep, roll or parry'],
+    grab:   ['Grab', 'roll, or parry exactly as it lands to throw them'],
+    skill:  ['Sword skill', 'every hit can be deflected'],
+    leap:   ['Leaping slam', 'jump the shockwave'],
+    bash:   ['Shield bash', 'parry it or step back'],
+    late:   ['Delayed hit', 'one hit in the string comes late: parry the swing, not the rhythm']
+  };
+  const WEAK = {
+    knight:'Pauses before his big overhead. Clash his light cuts to break his weapon.',
+    duelist:'Light build: two clean deflects stagger her for a free combo.',
+    shield:'The shield blocks from the front only. Go around him or guard crush it.',
+    spear:'Useless up close. Get inside the spear and stay there.',
+    assassin:'Fragile. Keep turning to face her and punish the moment she commits.',
+    brute:'Slow recoveries. Bait a heavy, roll it, then unload.',
+    captain:'Reads patterns fast: change your rhythm every string.',
+    reaver:'After the late hit, the chain is over. Punish right after it.',
+    sentinel:'Guard recovers fast, but the back is open while he spins.',
+    zealot:'Gets faster as he bleeds. Burst him down instead of trading.',
+    executioner:'Every axe overhead leaves him open for a long time if you roll it.',
+    rival:'Vesk escapes at a third of his health: save your burst for the end.',
+    rival2:'Gorrun resists whatever hurt him last. Mix skills, light cuts and heavy blows.',
+    mimic:'It copies your deck. Fight with moves you rarely use.',
+    hunter:'Relentless, but his dash thrust leaves him wide open if you sidestep it.',
+    drowned:'They rise again unless the last blow is a deathblow. Break their posture.',
+    tidecaller:'Fast thrust chains. Parry the first one and the rest stall.',
+    chestMimic:'All bite, no guard. Hit it hard and keep moving.',
+    ashWarden:'Phase two adds a leap: jump the shockwave.', rimeKing:'Two slams in a row: jump twice.',
+    ashTwin:'Kill one twin and the other goes berserk. Split the damage or burst one.', emberTwin:'Kill one twin and the other goes berserk. Split the damage or burst one.',
+    deepMother:'At half health she calls the drowned. Deathblow them so they stay down.'
+  };
+  function bestiaryMove(e, m){
+    if(!W.best) W.best = {};
+    const B = W.best[e.type] || (W.best[e.type] = { k:0, m:{} });
+    const kind = m.leap ? 'leap' : m.type === 'grab' ? 'grab' : m.skill ? 'skill' : m.type === 'sweep' ? 'sweep' : m.type === 'thrust' ? 'thrust' : m.bash ? 'bash' : m.heavy ? 'heavy' : m.hold && m.hold[0] >= 12 ? 'late' : 'light';
+    B.m[kind] = true;
+  }
+  function bestiaryKill(e){
+    if(!W.best) W.best = {};
+    const B = W.best[e.type] || (W.best[e.type] = { k:0, m:{} });
+    B.k++;
+    if(B.k === 3 && WEAK[e.type]) log('Bestiary: you\'ve learned the ' + e.T.name + '\'s weakness. Check it in your inventory (' + keyName(SET.bind.inventory) + ').', 'tip', 5000);
+  }
+
+  // ----- day and night: tougher enemies and better loot after dark -----
+  const DAY_LEN = 60 * 60 * 12; // a full day is 12 minutes
+  const daylight = () => clamp(Math.sin((W.time || 0) * TAU) * 1.4 + 0.35, 0, 1);
+  const isNight = () => mode === 'world' && daylight() < 0.25;
+  let lightStep = -1, lightArea = null;
+  function applyDaylight(force){
+    if(!AREA || !AREA.sky) return;
+    const q = Math.round(daylight() * 4) / 4;
+    if(!force && q === lightStep && lightArea === AREA.id) return;
+    lightStep = q; lightArea = AREA.id;
+    const day = AREA.daySky || [0x3a4a64, 0x7a8098];
+    const top = new THREE.Color(AREA.sky[0]).lerp(new THREE.Color(day[0]), q).getHex(), hor = new THREE.Color(AREA.bg).lerp(new THREE.Color(day[1]), q).getHex();
+    const opts = Object.assign({}, AREA.sky[1], { stars:q < 0.5 && AREA.sky[1].stars !== false ? (q > 0 ? 'dim' : true) : false, moonTint:q > 0.5 ? 0xfff0d0 : (AREA.sky[1].moonTint || 0xffffff) });
+    setSky(top, hor, opts);
+    hemi.intensity = AREA.hemi[2] * (1 + 0.5 * q); moon.intensity = AREA.moon * (1 + 0.45 * q);
+    moon.color.setHex(q > 0.5 ? 0xfff0dc : AREA.id === 'cinder' ? 0xffb08a : AREA.id === 'rime' ? 0xd0e0ff : 0xc8d0ff);
+    $('clock').textContent = q < 0.25 ? '· Night' : q > 0.75 ? '· Day' : q > lightPrev ? '· Dawn' : '· Dusk';
+    lightPrev = q;
+  }
+  let lightPrev = 0;
 
   // ----- loot: things enemies drop, lying on the ground until you walk over them -----
   const MATS = {
@@ -4119,11 +4575,29 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     mark:    { name:'Headsman\'s Mark', from:'executioner', desc:'Deathblows hit 20% harder.' },
     ember:   { name:'Warden\'s Ember', from:'ashWarden', boss:true, desc:'Deathblows heal you 4%.' },
     heart:   { name:'Rime Heart', from:'rimeKing', boss:true, desc:'Deflects deal 8 extra posture damage.' },
-    cinders: { name:'Twin Cinders', from:'emberTwin', boss:true, desc:'Chaining one skill into another heals you 3%.' }
+    cinders: { name:'Twin Cinders', from:'emberTwin', boss:true, desc:'Chaining one skill into another heals you 3%.' },
+    mirror:  { name:'Mirror Shard', from:'mimic', desc:'Enemies learn your patterns half as fast.' },
+    huntmark:{ name:'Hunter\'s Mark', from:'hunter', desc:'+15% damage to enemies at full health.' },
+    locket:  { name:'Drowned Locket', from:'drowned', desc:'Once per area, a killing blow leaves you at 1 HP instead.' },
+    tide:    { name:'Tide Charm', from:'tidecaller', desc:'Water doesn\'t slow you, and you move 6% faster.' },
+    pearl:   { name:'Abyssal Pearl', from:'deepMother', boss:true, desc:'Your guard recovers twice as fast.' }
   };
   const TRINKET_OF = {}; for(const id in TRINKETS) TRINKET_OF[TRINKETS[id].from] = id;
   TRINKET_OF.ashTwin = 'cinders';
-  const hasT = id => !!(P.trinkets && P.trinkets.includes(id));
+  // fused trinkets carry both effects at 70% strength. Ids look like "fuse:crest+veil"
+  const fuseParts = id => id && id.startsWith('fuse:') ? id.slice(5).split('+') : null;
+  function trinketInfo(id){
+    const parts = fuseParts(id);
+    if(!parts) return TRINKETS[id] || { name:id, desc:'' };
+    return { name:parts.map(p => TRINKETS[p].name).join(' + '), desc:'Fused, at 70% strength: ' + parts.map(p => TRINKETS[p].desc).join(' ') };
+  }
+  // how strongly a trinket's effect applies right now: 1 if equipped, 0.7 if inside an equipped fusion, else 0
+  function tPow(id){
+    let best = 0;
+    for(const t of (P.trinkets || [])){ if(!t) continue; if(t === id) return 1; const parts = fuseParts(t); if(parts && parts.includes(id)) best = 0.7; }
+    return best;
+  }
+  const hasT = id => tPow(id) > 0;
   const UPGRADE_COST = [null, { gold:80, iron:3 }, { gold:160, iron:5 }, { gold:260, iron:4, rime:3 }, { gold:380, rime:6 }, { gold:520, rime:4, cinder:4 }];
   const upgLv = () => (P.upg && P.upg[P.gear.weapon]) || 0;
   const upgM = () => 1 + 0.06 * upgLv();
@@ -4153,15 +4627,16 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function clearLoot(){ for(const o of loot){ scene.remove(o.m); if(o.beam) scene.remove(o.beam); } loot.length = 0; for(const k of knives) scene.remove(k.mesh); knives.length = 0; }
   function rollLoot(e){
     if(e.spar) return;
-    const floor = AREA.id === 'cinder' ? 3 : AREA.id === 'rime' ? 2 : 1, el = !!e.elite, boss = !!e.T.floorBoss, R = Math.random;
-    const out = [], mat = floor === 3 ? 'cinder' : floor === 2 ? 'rime' : 'iron';
+    const floor = Math.max(1, REGION_IDS.indexOf(AREA.id) + 1), el = !!e.elite || !!e.hunter || e.type === 'mimic', boss = !!e.T.floorBoss, R = Math.random;
+    const luck = (isNight() ? 1.4 : 1) * (1 + 0.25 * (W.ng || 0));
+    const out = [], mat = floor >= 3 ? 'cinder' : floor === 2 ? 'rime' : 'iron';
     if(boss || el || R() < 0.7) out.push(['mat', mat, boss ? 6 : el ? 3 + (R() * 3 | 0) : 1 + (R() < 0.3 ? 1 : 0)]);
     if(floor > 1 && R() < 0.35) out.push(['mat', floor === 3 ? 'rime' : 'iron', 1 + (R() * 2 | 0)]);
-    if(R() < (boss ? 1 : el ? 0.8 : 0.22)){ const r = R(), id = r < 0.4 ? 'knife' : r < 0.6 ? 'whet' : r < 0.8 ? 'tonic' : 'draught'; out.push(['item', id, id === 'knife' ? 2 + (R() * 2 | 0) : 1]); }
-    if(R() < (boss ? 1 : el ? 0.3 : 0.04)) out.push(['shard', 'shard', 1]);
+    if(R() < (boss ? 1 : el ? 0.8 : 0.22 * luck)){ const r = R(), id = r < 0.4 ? 'knife' : r < 0.6 ? 'whet' : r < 0.8 ? 'tonic' : 'draught'; out.push(['item', id, id === 'knife' ? 2 + (R() * 2 | 0) : 1]); }
+    if(R() < (boss ? 1 : el ? 0.3 : 0.04 * luck)) out.push(['shard', 'shard', 1]);
     if(R() < (el ? 0.6 : boss ? 1 : 0.12)) out.push(['gold', 'gold', (15 + (R() * 35 | 0)) * floor * (boss ? 4 : 1)]);
     const t = TRINKET_OF[e.type];
-    if(t && !P.trinketsOwned.has(t) && !loot.some(o => o.id === t) && (boss || R() < (el ? 0.35 : 0.06))) out.push(['trinket', t, 1]);
+    if(t && !P.trinketsOwned.has(t) && !loot.some(o => o.id === t) && (boss || R() < (el ? 0.35 : 0.06 * luck))) out.push(['trinket', t, 1]);
     const c = chestOf(e);
     for(const [kind, id, n] of out) dropLoot(e.x, e.z, kind, id, n);
     if(out.length) sfx('loot');
@@ -4170,7 +4645,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     let txt = '', col = '#ffffff';
     if(o.kind === 'mat'){ P.inv.mats[o.id] = (P.inv.mats[o.id] || 0) + o.n; txt = '+' + o.n + ' ' + MATS[o.id].name; col = MATS[o.id].hex; }
     else if(o.kind === 'item'){ const I = ITEMS[o.id]; P.inv.items[o.id] = Math.min(I.max, (P.inv.items[o.id] || 0) + o.n); txt = '+' + o.n + ' ' + I.name; col = I.hex; }
-    else if(o.kind === 'gold'){ const g = Math.round(o.n * (hasT('seal') ? 1.15 : 1)); P.gold += g; txt = '+' + g + ' gold'; col = '#ffd166'; }
+    else if(o.kind === 'gold'){ const g = Math.round(o.n * (1 + 0.15 * tPow('seal'))); P.gold += g; txt = '+' + g + ' gold'; col = '#ffd166'; }
     else if(o.kind === 'shard'){
       P.shards++;
       if(P.shards >= 3 && flaskCap() < 6){ P.shards -= 3; P.flaskMax = flaskCap() + 1; P.flasks = Math.min(flaskCap(), P.flasks + 1); showBanner('FLASK EXPANDED', 'you can carry ' + P.flaskMax + ' flasks now'); sfx('learn'); }
@@ -4180,7 +4655,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       P.trinketsOwned.add(o.id); sfx('learn');
       const free = P.trinkets.indexOf(null);
       if(free >= 0) P.trinkets[free] = o.id;
-      showBanner('TRINKET: ' + TRINKETS[o.id].name.toUpperCase(), TRINKETS[o.id].desc + (free >= 0 ? ' · equipped' : ' · swap it in from your loadout (K)'));
+      showBanner('TRINKET: ' + TRINKETS[o.id].name.toUpperCase(), TRINKETS[o.id].desc + (free >= 0 ? ' · equipped' : ' · swap it in from your inventory (I)'));
     }
     if(txt) floatText(P.x, 2.3 + Math.random() * 0.3, P.z, txt, col, 0.9);
     sfx('pickup', o.kind === 'trinket' ? 1.5 : 1);
@@ -4204,11 +4679,12 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   // ----- the belt: consumables on 1-4 -----
   const knives = [];
   const knifeGeo = new THREE.BoxGeometry(0.03, 0.012, 0.32), knifeMat = new THREE.MeshStandardMaterial({ color:0xe0e8f0, metalness:0.9, roughness:0.2, emissive:0x404850 });
-  function useItem(id){
-    if(mode !== 'world' || !P.alive || paused) return;
+  function useItem(id, fromMenu){
+    if(mode !== 'world' || !P.alive || (paused && !fromMenu)) return;
     const I = ITEMS[id];
     if(!(P.inv.items[id] > 0)){ floatText(P.x, 2.2, P.z, 'NO ' + I.name.toUpperCase() + 'S', '#958ca8', 0.85); return; }
-    if(P.atkT > 0 || P.skill || P.stunT > 0 || P.dodgeT > 0 || P.drinkT > 0 || BL || (P.throwT || 0) > 0 || (P.useT || 0) > 0) return;
+    if(fromMenu && id === 'knife') return;
+    if(!fromMenu && (P.atkT > 0 || P.skill || P.stunT > 0 || P.dodgeT > 0 || P.drinkT > 0 || BL || (P.throwT || 0) > 0 || (P.useT || 0) > 0)) return;
     P.inv.items[id]--;
     if(id === 'knife'){
       const tgt = lockT && lockT.alive ? lockT : null, yaw = tgt ? yawTo(P, tgt) : P.yaw;
@@ -4259,6 +4735,297 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     });
   }
 
+  // ----- chests and secrets -----
+  const chestOpened = ch => !!(W.opened && W.opened[ch.area] && W.opened[ch.area].includes(ch.i));
+  const wallBroken = (area, i) => !!(W.broken && W.broken[area] && W.broken[area].includes(i));
+  const crackedStone = hex => texMat(256, 1, (g, h, s) => {
+    g.fillStyle = hex; g.fillRect(0, 0, s, s); h.fillStyle = '#808080'; h.fillRect(0, 0, s, s);
+    for(let i = 0; i < 2000; i++){ g.fillStyle = 'rgba(0,0,0,' + rnd(0, 0.15) + ')'; g.fillRect(rnd(0, s), rnd(0, s), 3, 3); }
+    // big cracks: this wall looks like it would give
+    g.strokeStyle = 'rgba(10,8,8,0.9)'; h.strokeStyle = '#101010'; g.lineWidth = h.lineWidth = 3;
+    for(let i = 0; i < 6; i++){ let x = s / 2 + rnd(-30, 30), y = s / 2 + rnd(-30, 30); g.beginPath(); h.beginPath(); g.moveTo(x, y); h.moveTo(x, y); for(let k = 0; k < 5; k++){ x += rnd(-40, 40); y += rnd(-40, 40); g.lineTo(x, y); h.lineTo(x, y); } g.stroke(); h.stroke(); }
+  }, { bump:5 });
+  function buildChests(G, A, R, free){
+    A.chests = []; A.breakables = [];
+    const woodM = woodTex('#6a4428'), trimM = new THREE.MeshStandardMaterial({ color:0xc9a040, metalness:0.85, roughness:0.3 });
+    const wallM = stoneTex('#' + new THREE.Color(A.look.wall).getHexString(), 1), crackM = crackedStone('#' + new THREE.Color(A.look.wall).getHexString());
+    const make = (x, z, yaw, opts) => {
+      const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = yaw; g.userData.dyn = true; G.add(g);
+      addMesh(g, new THREE.BoxGeometry(0.9, 0.48, 0.58), woodM, 0, 0.24, 0);
+      for(const sx of [-0.33, 0.33]) addMesh(g, new THREE.BoxGeometry(0.06, 0.5, 0.6), trimM, sx, 0.25, 0);
+      const lid = new THREE.Group(); lid.position.set(0, 0.48, -0.29); g.add(lid);
+      addMesh(lid, new THREE.CylinderGeometry(0.29, 0.29, 0.9, 12, 1, false, 0, Math.PI), woodM, 0, 0, 0.29).rotation.z = Math.PI / 2;
+      addMesh(g, new THREE.BoxGeometry(0.12, 0.14, 0.04), trimM, 0, 0.42, 0.3);
+      const ch = { i:A.chests.length, area:A.id, x, z, g, lid, mimic:!!opts.mimic, tier:opts.tier || 1, seen:false, obs:{ x, z, r:0.55 } };
+      A.obstacles.push(ch.obs); A.chests.push(ch);
+      A.inter.push({ x, z, r:1.9, verb:'Open the chest', icon:'item', secret:ch, cond:() => !chestOpened(ch) && g.visible, act:() => openChest(ch) });
+      return ch;
+    };
+    // two at the edge of camps: you'll have to clear the camp or fight around it
+    for(const k of [1, 4]){ const c = A.camps[k % A.camps.length], a = R() * TAU; make(c.x + Math.sin(a) * 3.6, c.z + Math.cos(a) * 3.6, a + Math.PI, { tier:2 }); }
+    // two off the path, one of which might bite
+    let n = 0;
+    for(let i = 0; i < 3000 && n < 2; i++){
+      const x = -50 + R() * 100, z = -54 + R() * 108;
+      if(!free(x, z, 1.5) || A.obstacles.some(o => Math.hypot(o.x - x, o.z - z) < (o.r || Math.max(o.hw, o.hh)) + 1.4)) continue;
+      make(x, z, R() * TAU, { mimic:n === 1 && R() < 0.65 }); n++;
+    }
+    // one sealed behind a cracked wall: break in to reach it
+    for(let i = 0; i < 4000; i++){
+      const x = -46 + R() * 92, z = -50 + R() * 96;
+      if(!free(x, z, 3) || A.obstacles.some(o => Math.hypot(o.x - x, o.z - z) < (o.r || Math.max(o.hw, o.hh)) + 3.2)) continue;
+      const wall = (wx, wz, hw, hh, h, m) => { const mesh = addMesh(G, new THREE.BoxGeometry(hw * 2, h, hh * 2), m, wx, h / 2, wz); const obs = { x:wx, z:wz, hw, hh }; A.obstacles.push(obs); return { mesh, obs }; };
+      wall(x, z + 1.5, 1.6, 0.25, 2.6, wallM); wall(x - 1.5, z + 0.2, 0.25, 1.5, 2.6, wallM); wall(x + 1.5, z + 0.2, 0.25, 1.5, 2.6, wallM);
+      addMesh(G, new THREE.BoxGeometry(3.6, 0.25, 3.4), wallM, x, 2.7, z + 0.2);
+      const front = wall(x, z - 1.15, 1.25, 0.25, 2.6, crackM), b = { i:0, area:A.id, x, z:z - 1.15, hw:1.25, hh:0.25, hp:3, mesh:front.mesh, obs:front.obs, broken:false };
+      front.mesh.userData.dyn = true;
+      A.breakables.push(b);
+      if(wallBroken(A.id, 0)){ b.broken = true; front.mesh.visible = false; A.obstacles.splice(A.obstacles.indexOf(front.obs), 1); }
+      make(x, z + 0.4, Math.PI, { tier:3 });
+      break;
+    }
+    for(const ch of A.chests) if(chestOpened(ch)){ ch.lid.rotation.x = -1.9; if(ch.mimic) ch.g.visible = false; }
+    A.anim.push(() => {
+      for(const ch of A.chests){
+        ch.lid.rotation.x += ((chestOpened(ch) ? -1.9 : 0) - ch.lid.rotation.x) * 0.15;
+        if(!ch.seen && Math.hypot(P.x - ch.x, P.z - ch.z) < 24) ch.seen = true;
+      }
+    });
+  }
+  function openChest(ch){
+    if(!W.opened) W.opened = {};
+    (W.opened[ch.area] = W.opened[ch.area] || []).push(ch.i);
+    if(ch.mimic){
+      ch.g.visible = false; const oi = AREA.obstacles.indexOf(ch.obs); if(oi >= 0) AREA.obstacles.splice(oi, 1);
+      const e = spawnEnemy('chestMimic', { x:ch.x, z:ch.z, force:true }); if(e){ e.cool = 6; lockT = e; e.vy = 0.12; }
+      sfx('roar'); shake = Math.max(shake, 0.05); log('The chest bites!', 'lose', 3000); saveGame(); return;
+    }
+    sfx('clang', 0.6, 1.5); setTimeout(() => sfx('learn'), 200);
+    chestLoot(ch.x, ch.z, ch.tier); saveGame();
+  }
+  function chestLoot(x, z, tier){
+    const floor = Math.max(1, REGION_IDS.indexOf(AREA.id) + 1), R = Math.random, mat = floor >= 3 ? 'cinder' : floor === 2 ? 'rime' : 'iron';
+    dropLoot(x, z, 'mat', mat, 1 + tier + (R() * 2 | 0));
+    if(floor > 1) dropLoot(x, z, 'mat', floor >= 3 ? 'rime' : 'iron', 2 + (R() * 3 | 0));
+    dropLoot(x, z, 'gold', 'gold', (30 + (R() * 60 | 0)) * floor * tier);
+    const r = R(); dropLoot(x, z, 'item', r < 0.4 ? 'knife' : r < 0.6 ? 'whet' : r < 0.8 ? 'tonic' : 'draught', r < 0.4 ? 3 : 1 + (tier > 2 ? 1 : 0));
+    if(R() < 0.3 + 0.15 * tier) dropLoot(x, z, 'shard', 'shard', 1);
+    const pool = Object.keys(TRINKETS).filter(t => !TRINKETS[t].boss && !P.trinketsOwned.has(t) && !loot.some(o => o.id === t));
+    if(pool.length && R() < 0.15 + 0.15 * tier) dropLoot(x, z, 'trinket', pool[(R() * pool.length) | 0], 1);
+    sfx('loot');
+  }
+  // swings that hit a cracked wall chip at it; big hits count double
+  function breakableHits(s){
+    if(!AREA || !AREA.breakables) return;
+    for(const b of AREA.breakables){
+      if(b.broken) continue;
+      const dx = Math.max(Math.abs(P.x - b.x) - b.hw, 0), dz = Math.max(Math.abs(P.z - b.z) - b.hh, 0);
+      if(Math.hypot(dx, dz) > s.range + 0.2 || Math.abs(angDiff(P.yaw, Math.atan2(b.x - P.x, b.z - P.z))) > 1.3) continue;
+      b.hp -= s.big || s.crush ? 2 : 1;
+      sparkBurst(P.x + Math.sin(P.yaw) * 1.2, 1.2, P.z + Math.cos(P.yaw) * 1.2, '#c8c0b8', 16, 0.1); sfx('crack'); dust(b.x, b.z, 4);
+      hint('crack', 'That wall is cracked. Keep hitting it.');
+      if(b.hp <= 0) breakWall(b);
+    }
+  }
+  function breakWall(b){
+    b.broken = true; b.mesh.visible = false;
+    const oi = AREA.obstacles.indexOf(b.obs); if(oi >= 0) AREA.obstacles.splice(oi, 1);
+    if(!W.broken) W.broken = {};
+    (W.broken[b.area] = W.broken[b.area] || []).push(b.i);
+    for(let i = 0; i < 8; i++){
+      const m = new THREE.Mesh(new THREE.BoxGeometry(rand(0.2, 0.5), rand(0.2, 0.4), rand(0.15, 0.3)), b.mesh.material);
+      m.position.set(b.x + rand(-b.hw, b.hw), rand(0.5, 2.2), b.z); m.castShadow = true; scene.add(m);
+      const a = rand(0, TAU); debris.push({ mesh:m, vx:Math.sin(a) * 0.05, vy:rand(0.04, 0.1), vz:Math.cos(a) * 0.05, sx:rand(-0.3, 0.3), sy:rand(-0.3, 0.3), sz:rand(-0.3, 0.3), rest:false });
+    }
+    sfx('crack'); sfx('heavy'); shake = Math.max(shake, 0.05); dust(b.x, b.z, 22);
+    showBanner('SECRET FOUND', 'something was walled up in here'); saveGame();
+  }
+
+  // ----- the Hunter: after a while in a region, something starts tracking you -----
+  let hunterMet = false;
+  function streamHunter(){
+    if(hunterMet || !REGION_IDS.includes(AREA.id)) return;
+    W.huntT = (W.huntT || 0) + (isNight() ? 2 : 1);
+    if(W.huntT < 60 * 60 * 3) return; // about 3 minutes in the wilds, half that at night
+    for(let i = 0; i < 24; i++){
+      const a = rand(0, TAU), o = { x:clamp(P.x + Math.sin(a) * 28, -48, 48), z:clamp(P.z + Math.cos(a) * 28, -54, 54), radius:0.45 };
+      confine(o); if(Math.hypot(o.x - P.x, o.z - P.z) < 18) continue;
+      const e = spawnEnemy('hunter', { x:o.x, z:o.z, force:true, noLock:true }); if(!e) return;
+      const fl = REGION_IDS.indexOf(AREA.id);
+      e.maxHp = e.hp = Math.round(e.maxHp * (1 + 0.35 * fl)); e.str += 2 * fl; e.def += fl; e.hunter = true; e.cool = 30;
+      hunterMet = true; W.huntT = 0;
+      log('You\'re being hunted.', 'lose', 5000);
+      if(AC && !muted){ tone(AC.currentTime, 1.4, { f0:110, f1:82, gain:0.18, type:'sawtooth', lp:600 }); tone(AC.currentTime + 0.5, 1.2, { f0:82, f1:73, gain:0.14, type:'sawtooth', lp:500 }); }
+      return;
+    }
+  }
+
+  // ----- Odo the travelling merchant: turns up at a different shrine every time you rest -----
+  const ODO = [
+    { name:'Bundle of 4 throwing knives', cost:{ gold:60 }, give:() => { P.inv.items.knife = Math.min(ITEMS.knife.max, P.inv.items.knife + 4); } },
+    { name:'Whetstone', cost:{ gold:80 }, give:() => { P.inv.items.whet = Math.min(5, P.inv.items.whet + 1); } },
+    { name:'Iron Tonic', cost:{ gold:80 }, give:() => { P.inv.items.tonic = Math.min(5, P.inv.items.tonic + 1); } },
+    { name:'Swift Draught', cost:{ gold:80 }, give:() => { P.inv.items.draught = Math.min(5, P.inv.items.draught + 1); } },
+    { name:'Flask Shard', cost:{ gold:300, rime:2 }, avail:() => flaskCap() < 6, give:() => pickUp({ kind:'shard', id:'shard', n:1 }) },
+    { name:'Wrapped trinket (one you don\'t own)', cost:{ gold:400, rime:6 }, avail:() => odoTrinkets().length > 0, give:() => { const p = odoTrinkets(); pickUp({ kind:'trinket', id:p[(Math.random() * p.length) | 0], n:1 }); } },
+    { name:'Manual: a move you don\'t know', cost:{ gold:500, rime:4 }, avail:() => Object.keys(CARDS).some(c => !P.cards.has(c)), give:() => { const p = Object.keys(CARDS).filter(c => !P.cards.has(c)); const id = p[(Math.random() * p.length) | 0]; P.cards.add(id); showBanner('NEW MOVE: ' + CARDS[id].name.toUpperCase(), 'put it in your combat deck (K)'); } },
+    { name:'Scroll: a mantra you don\'t know', cost:{ gold:600, cinder:2 }, avail:() => Object.keys(MANTRAS).some(m => !MANTRAS[m].rematch && !P.mantraOwned.has(m)), give:() => { const p = Object.keys(MANTRAS).filter(m => !MANTRAS[m].rematch && !P.mantraOwned.has(m)); const id = p[(Math.random() * p.length) | 0]; P.mantraOwned.add(id); showBanner('MANTRA: ' + MANTRAS[id].name.toUpperCase(), 'attach it to a skill (K)'); } },
+    { name:'Trade 6 Iron Scrap for 1 Rimesteel Shard', cost:{ iron:6 }, give:() => { P.inv.mats.rime++; } },
+    { name:'Trade 4 Rimesteel Shards for 1 Cinder Core', cost:{ rime:4 }, give:() => { P.inv.mats.cinder++; } }
+  ];
+  const odoTrinkets = () => Object.keys(TRINKETS).filter(t => !TRINKETS[t].boss && !P.trinketsOwned.has(t));
+  const canPay = c => P.gold >= (c.gold || 0) && ['iron', 'rime', 'cinder'].every(k => (P.inv.mats[k] || 0) >= (c[k] || 0));
+  const costText = c => ['gold', 'iron', 'rime', 'cinder'].filter(k => c[k]).map(k => c[k] + ' ' + (k === 'gold' ? 'gold' : MATS[k].name)).join(', ');
+  function renderMerchant(list){
+    $('menuTitle').textContent = 'Odo\'s Pack'; $('menuSub').textContent = '"Everything\'s for sale, friend. Everything except the pack."';
+    list.append(el('div', 'goldline', Object.keys(MATS).map(k => MATS[k].name + ' ' + (P.inv.mats[k] || 0)).join(' · ')));
+    const grid = el('div', 'sk'); list.append(grid);
+    for(const it of ODO){
+      if(it.avail && !it.avail()) continue;
+      const c = card(it.name, '#ffd166', [costText(it.cost)]), row = el('div', 'btns');
+      row.append(btn('Buy', () => { if(!canPay(it.cost)) return; P.gold -= it.cost.gold || 0; for(const k of ['iron', 'rime', 'cinder']) P.inv.mats[k] -= it.cost[k] || 0; it.give(); sfx('learn'); renderMenu(); }, { disabled:!canPay(it.cost) }));
+      c.append(row); grid.append(c);
+    }
+  }
+  function moveMerchant(){
+    const spots = REGION_IDS.filter(k => k !== W.merchant && (k === 'wilds' || (W.shrines || []).includes(AREAS[k].respawnKey)));
+    if(spots.length) W.merchant = spots[(Math.random() * spots.length) | 0];
+  }
+
+  // ----- shrines: rest, travel between the ones you've found, and New Game+ -----
+  const SHRINE_LIST = [{ key:'town', area:'town', name:'Emberhold' }, { key:'shrine', area:'wilds', name:'The Ashen Wilds' }, { key:'rime', area:'rime', name:'The Rime Pass' },
+    { key:'cinder', area:'cinder', name:'Cinderfall' }, { key:'sanctum', area:'sanctum', name:'The Drowned Sanctum' }];
+  let shrineAt = 'town', ngArmed = false;
+  function discoverShrine(key){
+    if(!W.shrines) W.shrines = ['town'];
+    if(W.shrines.includes(key)) return;
+    W.shrines.push(key); log('Shrine found. You can travel here from any shrine now.', 'win', 4000); sfx('learn');
+  }
+  function fastTravel(key){
+    const d = SHRINE_LIST.find(s => s.key === key); if(!d) return;
+    const sh = d.area === 'town' ? { x:-6, z:-7 } : AREAS[d.area].shrine;
+    travel(d.area, { x:sh.x + 1.2, z:sh.z - 1.8, yaw:0 });
+  }
+  function startNGPlus(){
+    W.ng = (W.ng || 0) + 1;
+    Object.assign(W, { warden:false, rimeKing:false, twins:false, deep:false, opened:{}, broken:{}, rematch:{}, stain:null, huntT:0, respawn:'town',
+      rivals:{ vesk:newRivalState(), gorrun:newRivalState() } });
+    rebuildRegions(); resetCamps();
+    closeMenu(); travel('town');
+    setTimeout(() => showBanner('NEW GAME+ ' + W.ng, 'everything is tougher, and drops are better'), 900);
+    saveGame();
+  }
+  // throw away built regions so chests, walls and bosses come back fresh
+  function rebuildRegions(){
+    for(const k of REGION_IDS){
+      const G = WORLD_GROUPS[k]; if(!G) continue;
+      scene.remove(G); delete WORLD_GROUPS[k];
+      const A = AREAS[k]; for(const L of A.labels) L.el.remove();
+      Object.assign(A, { obstacles:[], inter:[], exits:[], labels:[], anim:[], camBlock:[], chests:[], breakables:[], water:null, seal:null });
+    }
+  }
+
+  // ----- the Pit: Emberhold's ranked fighting ring -----
+  const PIT = [
+    { name:'Pell the Green', type:'duelist', lv:0, gold:120 },
+    { name:'Brannoc Ironside', type:'shield', lv:1, gold:180, item:['tonic', 2] },
+    { name:'Sister Ysolde', type:'spear', lv:1, gold:220, item:['knife', 4] },
+    { name:'Quickhand Marr', type:'assassin', lv:2, gold:280, title:'Pit Fighter' },
+    { name:'Old Gorm', type:'brute', lv:2, wpn:'mace', gold:340, item:['whet', 2] },
+    { name:'Kel of the Twin Sabres', type:'reaver', lv:3, gold:420, shard:true },
+    { name:'Halvard the Wall', type:'sentinel', lv:3, wpn:'axe', gold:520 },
+    { name:'The Mirror', type:'mimic', lv:4, gold:900, title:'Champion of Emberhold', trinket:'mirror' }
+  ];
+  let pitState = null, pitReturnT = 0, pitFoe = null;
+  function startPit(rank){ W.pitFight = rank; pitState = 'enter'; closeMenu(); travel('pit', AREAS.pit.spawn); }
+  function updatePit(){
+    if(pitState === 'enter' && !worldT){
+      const R0 = PIT[W.pitFight], e = spawnEnemy(R0.type, { x:0, z:6, force:true, wpn:R0.wpn });
+      if(e){ e.pit = true; e.name = R0.name; e.maxHp = e.hp = Math.round(e.maxHp * (1 + 0.25 * R0.lv)); e.str += R0.lv; e.def += R0.lv; if(R0.lv >= 3) e.enraged = true; e.cool = 70; lockT = e; pitFoe = e; }
+      pitState = 'fight'; showBanner('RANK ' + (W.pitFight + 1) + ' · ' + R0.name.toUpperCase(), 'win, and the crowd remembers your name');
+    }
+    if(pitState === 'fight' && pitFoe && !pitFoe.alive) pitWin();
+    if(pitState === 'done' && --pitReturnT <= 0){ pitState = null; travel('town', { x:-10.2, z:-4.6, yaw:Math.PI / 2 }); }
+  }
+  function pitWin(){
+    const R0 = PIT[W.pitFight]; pitState = 'done'; pitReturnT = 200;
+    W.pitRank = Math.max(W.pitRank || 0, W.pitFight + 1);
+    P.gold += R0.gold; let extra = '';
+    if(R0.item){ P.inv.items[R0.item[0]] = Math.min(ITEMS[R0.item[0]].max, (P.inv.items[R0.item[0]] || 0) + R0.item[1]); extra = ' · +' + R0.item[1] + ' ' + ITEMS[R0.item[0]].name; }
+    if(R0.shard){ pickUp({ kind:'shard', id:'shard', n:1 }); extra = ' · flask shard'; }
+    if(R0.trinket && !P.trinketsOwned.has(R0.trinket)){ pickUp({ kind:'trinket', id:R0.trinket, n:1 }); }
+    setTimeout(() => showBanner(R0.title ? R0.title.toUpperCase() : 'VICTORY', '+' + R0.gold + ' gold' + extra), 700);
+    sfx('learn'); P.hp = P.maxHp; saveGame();
+  }
+  function pitLose(){
+    P.hp = P.maxHp; P.stunT = 30; endBladeLock(); slowmo(500, 0.3); sfx('fall');
+    if(pitFoe && pitFoe.alive) despawn([pitFoe]);
+    pitState = 'done'; pitReturnT = 120; showBanner('YOU YIELD', 'the crowd boos. Try again any time');
+  }
+
+  // ----- lessons at the practice ring -----
+  const TUT = [
+    ['combo', 'Click, click, click: land Cut, Backcut and Overhead on your partner.'],
+    ['pause', 'Click, click, then pause a beat and click again for a Guard Crush.'],
+    ['deflect', 'Tap parry right as its blade comes in. Deflect 3 swings.'],
+    ['clash', 'Swing into its swing just as it releases. Make the blades collide.'],
+    ['jump', 'A low crouch with the blade dragged back is a sweep. Jump 2 of them.'],
+    ['skill', 'Use a sword skill, then press your other skill as it ends to chain them.'],
+    ['plunge', 'Jump, then attack in the air to plunge down near your partner.']
+  ];
+  function tutorBrain(e){
+    const step = TUT[W.tut.step][0];
+    const choose = step === 'deflect' || step === 'clash' ? () => [M({ wind:16, hold:[12,22], range:2.3, dmg:3, rec:34, side:1 })]
+      : step === 'jump' ? () => [M({ wind:20, hold:[8,14], type:'sweep', active:7, rec:36, range:2.8, cone:Math.PI, dmg:3 })] : () => null;
+    e.T = Object.assign({}, TYPES.knight, { name:'Drill Partner', spd:0.02, turn:0.08, ready:0, parry:0, block:0, back:0, exchange:0, reactCd:99999, poise:true, armored:false, cool:55, choose, reply:() => [], counter:() => [] });
+    e.cool = 60; e.state = 'neutral'; e.chain = null; e.strike = null;
+  }
+  function startTutorial(){
+    if(!W.tut || W.tut.done) W.tut = { step:0, n:0 };
+    closeMenu(); startSpar('tutor');
+    showBanner('LESSON ' + (W.tut.step + 1) + ' OF ' + TUT.length, TUT[W.tut.step][1]); updateQuestHud();
+  }
+  function tutNote(kind){
+    if(!W.tut || W.tut.done || sparring !== 'tutor') return;
+    const step = TUT[W.tut.step][0];
+    let pass = false;
+    if(kind === 'hit' && step === 'combo' && P.deckPos === 'q3') pass = true;
+    if(kind === 'hit' && step === 'pause' && (P.deckPos === 'p2' || P.deckPos === 'p1')) pass = true;
+    if(kind === 'deflect' && step === 'deflect' && ++W.tut.n >= 3) pass = true;
+    if(kind === 'clash' && step === 'clash') pass = true;
+    if(kind === 'evade' && step === 'jump' && ++W.tut.n >= 2) pass = true;
+    if(kind === 'connect' && step === 'skill') pass = true;
+    if(kind === 'plunge' && step === 'plunge' && enemies.some(e => e.tutor && dist(e, P) < 3.5)) pass = true;
+    if(!pass) return;
+    W.tut.step++; W.tut.n = 0; sfx('learn');
+    if(W.tut.step >= TUT.length){
+      W.tut.done = true; P.gold += 100; P.inv.items.knife = Math.min(ITEMS.knife.max, P.inv.items.knife + 4);
+      showBanner('LESSONS COMPLETE', '+100 gold · +4 throwing knives'); endSpar(true); saveGame();
+    } else {
+      showBanner('LESSON ' + (W.tut.step + 1) + ' OF ' + TUT.length, TUT[W.tut.step][1]);
+      const t = enemies.find(e => e.tutor); if(t) tutorBrain(t);
+    }
+    updateQuestHud();
+  }
+
+  // ----- water in the Drowned Sanctum -----
+  const inWater = ent => !!(AREA && AREA.water && AREA.water.some(w => Math.hypot(ent.x - w.x, ent.z - w.z) < w.r));
+  function buildPools(G, A, R, free){
+    A.water = [];
+    const nc = document.createElement('canvas'); nc.width = nc.height = 128; const ng = nc.getContext('2d');
+    ng.fillStyle = '#8080ff'; ng.fillRect(0, 0, 128, 128);
+    for(let i = 0; i < 60; i++){ const x = rnd(0, 128), y = rnd(0, 128), r = rnd(6, 20); const gr = ng.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(150,150,255,0.5)'); gr.addColorStop(1, 'rgba(110,110,255,0)'); ng.fillStyle = gr; ng.fillRect(x - r, y - r, r * 2, r * 2); }
+    const nm = new THREE.CanvasTexture(nc); nm.wrapS = nm.wrapT = THREE.RepeatWrapping; nm.repeat.set(3, 3);
+    const mat = new THREE.MeshStandardMaterial({ color:0x123a44, roughness:0.12, metalness:0.55, transparent:true, opacity:0.85, normalMap:nm, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4 });
+    for(let i = 0; i < 3000 && A.water.length < 12; i++){
+      const x = -48 + R() * 96, z = -52 + R() * 100, r = 3 + R() * 4;
+      if(A.camps.some(c => Math.hypot(c.x - x, c.z - z) < 6) || Math.hypot(x - A.boss.x, z - A.boss.z) < 16 || Math.hypot(x - A.shrine.x, z - A.shrine.z) < 6 || A.water.some(w => Math.hypot(w.x - x, w.z - z) < w.r + r)) continue;
+      const m = new THREE.Mesh(new THREE.CircleGeometry(r, 32), mat); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.05, z); m.receiveShadow = true; G.add(m);
+      A.water.push({ x, z, r });
+    }
+    A.anim.push(t => { nm.offset.set(t * 0.03, t * 0.02); });
+  }
+
   // ----- the practice ring in Emberhold: test your deck and mantras without risking anything -----
   const SPAR_POST = { x:5, z:-12.6 };
   let sparring = null;
@@ -4266,7 +5033,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   function startSpar(type){
     endSpar(true);
     const x = clamp(P.x + Math.sin(P.yaw) * 4, -11, 11), z = clamp(P.z + Math.cos(P.yaw) * 4, -11, 11);
-    const e = spawnEnemy(type === 'dummy' ? 'knight' : type, { x, z, force:true });
+    const e = spawnEnemy(type === 'dummy' || type === 'tutor' ? 'knight' : type, { x, z, force:true });
     if(!e) return;
     e.spar = true; e.sparDmg = 0; e.sparQuiet = 0; e.lastHp = e.hp;
     if(type === 'dummy'){
@@ -4274,8 +5041,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       e.T = Object.assign({}, e.T, { name:'Training Dummy', spd:0, turn:0.02, ready:0, parry:0, block:0, back:0, exchange:0, poise:false, armored:false, shield:false });
       e.R.mats[0].color.setHex(0xc8a860); e.R.mats[1].color.setHex(0x8a6a3a); e.R.mats[2].color.setHex(0x6a4a2a); e.R.sword.visible = false;
     }
+    if(type === 'tutor'){ e.tutor = true; e.name = 'Drill Partner'; e.maxHp = e.hp = e.lastHp = 400; tutorBrain(e); }
     sparring = type; lockT = e;
-    showBanner('SPARRING', type === 'dummy' ? 'hit it all you want · damage totals show after each combo' : 'no gold, no stats, no dying · walk away to stop');
+    if(type !== 'tutor') showBanner('SPARRING', type === 'dummy' ? 'hit it all you want · damage totals show after each combo' : 'no gold, no stats, no dying · walk away to stop');
   }
   function endSpar(silent){
     if(!sparring) return;
@@ -4290,7 +5058,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       if(e.hp < e.lastHp){ e.sparDmg += e.lastHp - e.hp; e.sparQuiet = 0; } else e.sparQuiet++;
       // a damage readout after each flurry, so you can compare builds
       if(e.sparQuiet === 70 && e.sparDmg > 0){ const c = chestOf(e); floatText(c.x, c.y + 1.2, c.z, 'COMBO TOTAL ' + Math.round(e.sparDmg), '#ffd166', 1.15); e.sparDmg = 0; }
-      if(e.dummy && (e.sparQuiet > 70 || e.hp < 60)){ e.hp = e.maxHp; e.posture = 0; }
+      if((e.dummy || e.tutor) && (e.sparQuiet > 70 || e.hp < 60)){ e.hp = e.maxHp; e.posture = 0; }
       e.lastHp = e.hp;
     }
     if(!enemies.some(e => e.spar && e.alive)){ showBanner('YOU WIN THE SPAR', 'talk to the post for another round'); sparring = null; P.hp = P.maxHp; }
@@ -4316,6 +5084,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       const q = W.quests[id]; if(!q || q.step < 0 || q.step === 99) continue;
       const d = document.createElement('div'), b = document.createElement('b'); b.textContent = QUESTS[id].name; d.append(b, QUESTS[id].steps[q.step]); el.append(d);
     }
+    if(W.tut && !W.tut.done && sparring === 'tutor'){ const d = document.createElement('div'), b = document.createElement('b'); b.textContent = 'Lesson ' + (W.tut.step + 1) + ' of ' + TUT.length; d.append(b, TUT[W.tut.step][1]); el.append(d); }
     el.hidden = !el.children.length;
   }
   let talkWith = null;
@@ -4349,8 +5118,27 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       if(q.step === 1) return { name:'Bram', text:'"That\'s it. That\'s the stuff." He doesn\'t even wait for the forge to cool. "Here. Don\'t you dare whiff with it."', opts:[['(Take the Masterwork)', () => { P.owned.add('masterwork'); questAdvance('masterwork', 2); showBanner('BRAM\'S MASTERWORK', 'equip it at the forge'); }], shop] };
       return { name:'Bram', text:q.step === 0 ? '"Rimesteel. Frozen Cairn. Go."' : '"Gold first. And don\'t blame the blade when you whiff."', opts:[shop, ['Never mind.', null]] };
     },
+    shrine(){
+      const opts = [['Rest: heal, refill flasks (the camps come back)', () => { closeMenu(); rest(shrineAt); }]];
+      for(const d of SHRINE_LIST) if(d.key !== shrineAt && (d.key === 'town' || (W.shrines || []).includes(d.key))) opts.push(['Travel to ' + d.name, () => { closeMenu(); fastTravel(d.key); }]);
+      if(W.deep) opts.push([ngArmed ? 'Click again: begin New Game+ ' + ((W.ng || 0) + 1) : 'Begin New Game+ ' + ((W.ng || 0) + 1) + ' (keep your build, the world gets harder)', () => { if(!ngArmed){ ngArmed = true; return; } startNGPlus(); }]);
+      opts.push(['Leave', null]);
+      return { name:'Shrine', text:'The orb hums under your hand. Rest here, or follow its light to any other shrine you\'ve found.' + (W.deep ? ' The world could begin again, harder, and you would keep everything you are.' : ''), opts };
+    },
+    odo(){
+      return { name:'Odo · Peddler', text:'"Ah, a customer! I go where the roads go, friend. Today the road goes here. Tomorrow? Who knows. Buy while I\'m in a good mood."', opts:[['Show me your wares.', () => openMenu('merchant')], ['Not today.', null]] };
+    },
+    varga(){
+      const rank = W.pitRank || 0, opts = [];
+      if(rank < PIT.length) opts.push(['Fight rank ' + (rank + 1) + ': ' + PIT[rank].name, () => startPit(rank)]);
+      if(rank > 0) opts.push(['Rematch rank ' + rank + ': ' + PIT[rank - 1].name, () => startPit(rank - 1)]);
+      opts.push(['Not now.', null]);
+      return { name:'Varga · Pit Master', text:rank >= PIT.length ? '"Champion. The crowd chants your name in their sleep. Want to bleed for old times\' sake?"'
+        : '"The Pit takes anyone. Eight fighters, one at a time. Lose and you yield: nobody dies in my ring. Win, and Emberhold remembers you." Your rank: ' + rank + ' of ' + PIT.length + '.', opts };
+    },
     spar(){
       const opts = [['Training dummy (doesn\'t fight back)', () => { closeMenu(); startSpar('dummy'); }]];
+      opts.unshift([W.tut && W.tut.done ? 'Lessons (done, but you can redo them)' : 'Lessons: learn the basics, step by step', () => { if(W.tut && W.tut.done) W.tut = null; startTutorial(); }]);
       for(const t of SPAR_POOL) if(seen[t]) opts.push(['Spar: ' + TYPES[t].name, () => { closeMenu(); startSpar(t); }]);
       if(sparring) opts.unshift(['Stop sparring', () => { endSpar(); }]);
       return { name:'Practice Ring', text:'A worn post with a list of names carved into it. Pick a partner: nobody dies here, and nobody gets paid. Enemies you\'ve met out in the world show up as partners.', opts:opts.concat([['Leave', null]]) };
@@ -4404,8 +5192,42 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       A.obstacles.push({ x:SPAR_POST.x, z:SPAR_POST.z, r:0.3 });
       A.inter.push({ x:SPAR_POST.x, z:SPAR_POST.z, r:2.4, verb:'Use the practice ring', icon:'spar', act:() => openTalk('spar') });
       A.labels.push(label('Practice Ring', SPAR_POST.x, 2.6, SPAR_POST.z, 14));
+      makeNPC(G, A, { name:'Varga · Pit Master', x:-11.4, z:-3.2, yaw:Math.PI / 2 - 0.2, talk:'varga', quest:() => (W.pitRank || 0) < PIT.length && (W.pitRank || 0) < 1,
+        look:{ scale:1.08, bulk:1.25, body:0x7a3a2a, dark:0x2a1410, trim:0xd8b060, helm:'none', cape:0x5a1a10, wlen:1.1, wwidth:1.4 }, pose:{ armUp:-0.3, armYaw:-0.6, ext:0.4, tilt:-0.2, crouch:0.05, lean:-0.05 } });
+      // the Pit gate behind Varga
+      const pitGate = new THREE.Group(); pitGate.position.set(-13.6, 0, -3.2); pitGate.rotation.y = Math.PI / 2; G.add(pitGate);
+      const gateStone = stoneTex('#4a3a3a', 1);
+      for(const sx of [-1.3, 1.3]) addMesh(pitGate, new THREE.BoxGeometry(0.5, 3.4, 0.5), gateStone, sx, 1.7, 0);
+      addMesh(pitGate, new THREE.BoxGeometry(3.2, 0.5, 0.6), gateStone, 0, 3.6, 0);
+      const bars = new THREE.MeshStandardMaterial({ color:0x2a2a2e, metalness:0.8, roughness:0.4 });
+      for(let i = -3; i <= 3; i++) addMesh(pitGate, new THREE.CylinderGeometry(0.04, 0.04, 3.2, 6), bars, i * 0.3, 1.6, 0);
+      A.labels.push(label('The Pit', -13.6, 4.2, -3.2, 16));
+      // trophy hall: pedestals that fill up as you beat bosses and rivals
+      const TROPHIES = [
+        { name:'Ashen Warden\'s helm', cond:() => W.warden, color:0xd8752a, make:g => { addMesh(g, new THREE.SphereGeometry(0.28, 14, 8, 0, TAU, 0, Math.PI / 2), stdMat(0x3a3634, 0.4, 0.6), 0, 0, 0); addMesh(g, new THREE.BoxGeometry(0.06, 0.14, 0.5), stdMat(0xd8752a, 0.4, 0.6), 0, 0.22, 0); } },
+        { name:'Rimeborn crown', cond:() => W.rimeKing, color:0x9fe8ff, make:g => { addMesh(g, new THREE.TorusGeometry(0.22, 0.05, 8, 20), stdMat(0xd8ecff, 0.2, 0.9), 0, 0.05, 0).rotation.x = Math.PI / 2; for(let i = 0; i < 6; i++){ const a = i / 6 * TAU; addMesh(g, new THREE.ConeGeometry(0.04, 0.2, 5), stdMat(0x9fe8ff, 0.2, 0.9), Math.sin(a) * 0.22, 0.15, Math.cos(a) * 0.22); } } },
+        { name:'Ash & Ember\'s blades', cond:() => W.twins, color:0xff7a2a, make:g => { for(const r of [-0.6, 0.6]){ const b = addMesh(g, new THREE.BoxGeometry(0.05, 0.8, 0.02), stdMat(0xe0d8d0, 0.2, 0.9), 0, 0.3, 0); b.rotation.z = r; } } },
+        { name:'The Drowned Mother\'s pearl', cond:() => W.deep, color:0x7affe8, make:g => { const m = addMesh(g, new THREE.SphereGeometry(0.2, 16, 12), new THREE.MeshStandardMaterial({ color:0x7affe8, emissive:0x2a8a80, emissiveIntensity:1, roughness:0.1, metalness:0.4 }), 0, 0.15, 0); } },
+        { name:'Vesk\'s mask', cond:() => W.rivals.vesk.done, color:0xff5a6a, make:g => { addMesh(g, new THREE.SphereGeometry(0.22, 14, 10, 0, Math.PI, 0, Math.PI), stdMat(0xe8d8c0, 0.5, 0.1), 0, 0.15, 0); } },
+        { name:'Gorrun\'s tusk', cond:() => W.rivals.gorrun.done, color:0x9fe0ff, make:g => { const c = addMesh(g, new THREE.ConeGeometry(0.08, 0.6, 8), stdMat(0xe8e0c8, 0.5, 0.1), 0, 0.3, 0); c.rotation.z = 0.4; } },
+        { name:'Champion\'s laurel', cond:() => (W.pitRank || 0) >= PIT.length, color:0xffd166, make:g => { addMesh(g, new THREE.TorusGeometry(0.2, 0.035, 8, 24, Math.PI * 1.6), stdMat(0xd8b040, 0.3, 0.9), 0, 0.15, 0).rotation.x = Math.PI / 2; } }
+      ];
+      TROPHIES.forEach((t, i) => {
+        const a = (30 + i * 6) * Math.PI / 180, x = Math.sin(a) * 13, z = Math.cos(a) * 13;
+        addMesh(G, new THREE.CylinderGeometry(0.32, 0.4, 1.1, 10), gateStone, x, 0.55, z);
+        const holder = new THREE.Group(); holder.position.set(x, 1.25, z); holder.userData.dyn = true; G.add(holder); t.make(holder);
+        A.obstacles.push({ x, z, r:0.42 });
+        const lab = label(t.name, x, 2.1, z, 7); A.labels.push(lab);
+        A.anim.push(tt => { const got = !!t.cond(); holder.visible = got; lab.hidden = !got; holder.rotation.y = tt * 0.5 + i; });
+      });
+      A.labels.push(label('Trophy Hall', 9.4, 3.0, 9.4, 16));
       // Bram talks now instead of jumping straight to the shop
       const bi = A.inter.find(i => i.icon === 'smith'); if(bi){ bi.act = () => openTalk('bram'); bi.quest = () => (qs('masterwork').step === -1 && W.warden) || qs('masterwork').step === 1; }
+    }
+    if(REGION_IDS.includes(id)){
+      const sh = A.shrine;
+      makeNPC(G, A, { name:'Odo · Peddler', x:sh.x + 2.6, z:sh.z + 1.4, yaw:Math.atan2(-2.6, -1.4), talk:'odo', cond:() => W.merchant === id,
+        look:{ scale:0.95, bulk:1.2, body:0x6a5a3a, dark:0x3a2e1e, trim:0xd8c080, helm:'hood', cape:0x4a3a22, wlen:0.5 }, noSword:true, pose:{ armUp:-0.9, armYaw:0.3, ext:0.3, tilt:0, crouch:0.15, lean:0.15 } });
     }
     if(id === 'wilds'){
       const mill = A.camps.find(c => c.id === 'mill'), lx = mill.x + 3.6, lz = mill.z - 3.4;
@@ -4429,14 +5251,15 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   }
 
   // ----- saving -----
-  function readSave(){ try{ const s = localStorage.getItem(SAVE_KEY); return s ? JSON.parse(s) : null; }catch(err){ return null; } }
+  function readSave(){ return readSlot(curSlot); }
   function saveGame(){
     if(mode !== 'world' || !started) return;
     const S = { v:1, stats:P.stats, xp:P.xp, mastery:P.mastery, unlocked:[...P.unlocked], loadout:P.loadout, deflects:P.deflects, learnProg:P.learnProg,
       gold:P.gold, gear:P.gear, owned:[...P.owned], kills, deaths, world:W, hints:hintsSeen, seen,
       deck:P.deck, cards:[...P.cards], mantras:P.mantras, mantraOwned:[...P.mantraOwned], talents:[...P.talents], tc:P.tc,
       inv:P.inv, upg:P.upg, trinketsOwned:[...P.trinketsOwned], trinkets:P.trinkets, flaskMax:P.flaskMax, shards:P.shards };
-    try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(err){}
+    S.savedAt = Date.now();
+    try{ localStorage.setItem(saveKeyFor(curSlot), JSON.stringify(S)); }catch(err){}
   }
   addEventListener('visibilitychange', () => { if(document.hidden) saveGame(); });
   addEventListener('beforeunload', saveGame);
@@ -4447,7 +5270,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     P.mastery = {}; P.unlocked = new Set(['rush','fangs']); P.loadout = { Q:'rush', E:'fangs' }; P.learnProg = {}; P.deflects = 0;
     P.gold = 0; P.gear = { weapon:'arming', armor:'coat' }; P.owned = new Set(['arming','coat']); kills = 0; deaths = 0;
     resetBuild(); resetInventory();
-    Object.assign(W, { respawn:'town', rivals:{ vesk:newRivalState(), gorrun:newRivalState() }, warden:false, rimeKing:false, twins:false, rematch:{}, quests:{}, bounties:[], stain:null, camps:0 });
+    Object.assign(W, { respawn:'town', rivals:{ vesk:newRivalState(), gorrun:newRivalState() }, warden:false, rimeKing:false, twins:false, deep:false, ng:0, time:0.3, shrines:['town'], merchant:'wilds',
+      best:{}, opened:{}, broken:{}, tut:null, pitRank:0, huntT:0, rematch:{}, quests:{}, bounties:[], stain:null, camps:0 });
+    rebuildRegions();
     if(S){
       if(S.stats) Object.assign(P.stats, S.stats);
       if(S.xp) Object.assign(P.xp, S.xp);
@@ -4466,6 +5291,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
         Object.assign(W, sw, { rivals:{ vesk:Object.assign(newRivalState(), rv.vesk), gorrun:Object.assign(newRivalState(), rv.gorrun) }, rematch:sw.rematch || {}, quests:sw.quests || {} });
         delete W.rival;
       }
+      W.shrines = W.shrines || ['town']; W.merchant = W.merchant || 'wilds'; W.best = W.best || {}; W.opened = W.opened || {}; W.broken = W.broken || {};
+      if(W.time == null) W.time = 0.3;
       if(S.hints) Object.assign(hintsSeen, S.hints);
       if(S.seen) Object.assign(seen, S.seen);
       if(S.cards) P.cards = new Set(['a1','a2','a3','crush','rise', ...S.cards.filter(c => CARDS[c])]);
@@ -4476,7 +5303,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       if(S.tc) Object.assign(P.tc, S.tc);
       if(S.inv){ Object.assign(P.inv.mats, S.inv.mats || {}); Object.assign(P.inv.items, S.inv.items || {}); }
       if(S.upg) P.upg = S.upg;
-      if(S.trinketsOwned) P.trinketsOwned = new Set(S.trinketsOwned.filter(t => TRINKETS[t]));
+      if(S.trinketsOwned) P.trinketsOwned = new Set(S.trinketsOwned.filter(t => TRINKETS[t] || (fuseParts(t) || []).every(x => TRINKETS[x])));
       if(S.trinkets) P.trinkets = S.trinkets.slice(0, 2).map(t => t && P.trinketsOwned.has(t) ? t : null);
       while(P.trinkets.length < 2) P.trinkets.push(null);
       P.flaskMax = clamp(S.flaskMax || 3, 3, 6); P.shards = S.shards || 0;
@@ -4488,7 +5315,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     if(!stainMesh) makeStainMesh();
     P.hp = P.maxHp; P.flasks = flaskCap();
     spawnAtRespawn(); updateQuestHud();
-    if(!S) log('Emberhold: the last safe town on Floor 1. See Bram the smith, check the bounty board, then take the north gate into the Wilds.', 'tip', 10000);
+    if(!S) log('Emberhold: the last safe town on Floor 1. New here? The practice ring has lessons. Then see Bram, check the bounty board, and take the north gate into the Wilds.', 'tip', 12000);
     else log('Welcome back. Gold ' + P.gold + ' · ' + (W.twins ? 'Floor 3 cleared' : W.rimeKing ? 'Floor 2 cleared, Cinderfall is open' : W.warden ? 'Floor 1 cleared, the Rime Pass is open' : 'the Warden still waits'), 'tip', 5000);
   }
   function worldDeath(){
@@ -4496,7 +5323,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     W.stain = g > 0 ? { area:AREA.id, x:P.x, z:P.z, gold:g } : null;
     P.gold = 0;
     saveGame();
-    const where = W.respawn === 'shrine' ? 'the shrine in the Wilds' : W.respawn === 'rime' ? 'the shrine in the Rime Pass' : W.respawn === 'cinder' ? 'the shrine in Cinderfall' : 'Emberhold';
+    const where = W.respawn === 'shrine' ? 'the shrine in the Wilds' : W.respawn === 'rime' ? 'the shrine in the Rime Pass' : W.respawn === 'cinder' ? 'the shrine in Cinderfall' : W.respawn === 'sanctum' ? 'the shrine in the Drowned Sanctum' : 'Emberhold';
     return '<h2>You fell</h2><p>' + (g ? 'Your ' + g + ' gold lies where you fell. Get back to it before you die again.' : 'You had no gold on you. Small mercies.') +
       (old ? ' The ' + old + ' gold you dropped before is gone for good.' : '') + ' Your stats and skills stay.</p><p>Press R to wake at ' + where + '.</p>';
   }
@@ -4515,7 +5342,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       if(worldT === 24){
         const from = AREA.id; enterArea(worldDest.id, worldDest.at);
         // a region refills whenever you walk in from somewhere else
-        if(worldDest.id !== 'town' && from !== worldDest.id) resetCamps(worldDest.id);
+        if(REGION_IDS.includes(worldDest.id) && from !== worldDest.id) resetCamps(worldDest.id);
       }
       if(worldT === 18) $('fade').style.opacity = 0;
       return;
@@ -4526,7 +5353,14 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       // coming back down a floor drops you at that region's north gate, not its start
       if(Math.hypot(P.x - x.x, P.z - x.z) < x.r){ travel(x.to, x.to === 'town' ? AREAS.town.from : (AREAS[x.to].northTo === AREA.id ? AREAS[x.to].from : null)); return; }
     }
-    if(AREA.id !== 'town'){ streamCamps(); streamRival(); bossCheck(); }
+    // the clock keeps turning; lighting steps every few seconds
+    W.time = ((W.time || 0.3) + 1 / DAY_LEN) % 1;
+    if(frameNo % 120 === 0) applyDaylight();
+    if(AREA.id === 'pit') updatePit();
+    else if(AREA.id !== 'town'){
+      streamCamps(); streamRival(); bossCheck(); streamHunter();
+      if(Math.hypot(P.x - AREA.shrine.x, P.z - AREA.shrine.z) < 7) discoverShrine(AREA.respawnKey);
+    }
     else updateSpar();
     stainCheck(); questTick();
     if(++saveT > 1800){ saveT = 0; saveGame(); }
@@ -4552,6 +5386,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     for(const it of AREA.inter){
       // quest targets show their "!" even before you can use them
       if(it.cond && !it.cond() && !(it.quest && it.quest())) continue;
+      if(it.secret && !it.secret.seen) continue;
       const x = X(typeof it.x === 'function' ? it.x() : it.x), y = Y(typeof it.z === 'function' ? it.z() : it.z);
       mmG.fillStyle = ICON[it.icon] || '#ffffff'; mmG.beginPath(); mmG.moveTo(x, y - 9); mmG.lineTo(x + 7, y); mmG.lineTo(x, y + 9); mmG.lineTo(x - 7, y); mmG.fill();
       if(it.quest && it.quest()){ mmG.fillStyle = '#ffd166'; mmG.font = 'bold 24px sans-serif'; mmG.textAlign = 'center'; mmG.fillText('!', x, y - 12); }
@@ -4629,8 +5464,8 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     for(let i = 0; i < 2; i++){
       const l = document.createElement('label'); l.className = 'panel'; l.append('Trinket ' + (i + 1));
       const cur = P.trinkets[i];
-      const opts = [['', owned.length ? 'Empty' : 'None found yet'], ...owned.filter(t => t === cur || !P.trinkets.includes(t)).map(t => [t, TRINKETS[t].name])];
-      const sm = document.createElement('small'); sm.textContent = cur ? TRINKETS[cur].desc : 'Kill enemies to find trinkets.';
+      const opts = [['', owned.length ? 'Empty' : 'None found yet'], ...owned.filter(t => t === cur || !P.trinkets.includes(t)).map(t => [t, trinketInfo(t).name])];
+      const sm = document.createElement('small'); sm.textContent = cur ? trinketInfo(cur).desc : 'Kill enemies to find trinkets.';
       l.append(mkSelect(opts, cur || '', v => { P.trinkets[i] = v || null; renderLoadout(); }), sm);
       trl.append(l);
     }
@@ -4768,6 +5603,12 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
     const cam = card('Camera');
     slider(cam, 'Field of view', 'fov', 50, 90, 1, v => v + '°');
     slider(cam, 'Screen shake', 'shake', 0, 1.5, 0.05, pct);
+    const play = card('Gameplay');
+    const drow = document.createElement('label'); drow.className = 'setrow';
+    const dl = document.createElement('span'); dl.textContent = 'Difficulty';
+    drow.append(dl, mkSelect(Object.keys(DIFF).map(k => [k, DIFF[k].name]), SET.difficulty, v => { SET.difficulty = v; saveSettings(); renderSettings(); }));
+    play.append(drow);
+    const dn = document.createElement('div'); dn.className = 'padmap'; dn.textContent = DF().desc; play.append(dn);
     const aud = card('Audio');
     slider(aud, 'Master volume', 'volume', 0, 1, 0.05, pct);
     slider(aud, 'Combat music', 'music', 0, 1, 0.05, pct);
@@ -4783,6 +5624,242 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   $('resetSettings').addEventListener('click', () => { Object.assign(SET, SET_DEFAULT, { bind:Object.assign({}, BIND_DEFAULT) }); applySettings(); refreshKeyLabels(); renderSettings(); });
   $('settingsBtn').addEventListener('click', () => { initAudio(); openSettings(); });
   refreshKeyLabels();
+
+  // ---------- screens: inventory, pause menu, big map, save slots ----------
+  let screen = null, screenWasPaused = false, invTab = 'gear';
+  const SCREEN_EL = { inv:'invOverlay', pause:'pauseOverlay', map:'mapOverlay', slots:'slotOverlay' };
+  function openScreen(name){
+    if(settingsOpen || menuOpen) return;
+    if(name !== 'slots' && !started) return;
+    if((name === 'inv' || name === 'map') && mode !== 'world') return;
+    if(screen) closeScreen(true);
+    screen = name; screenWasPaused = paused; paused = true;
+    $(SCREEN_EL[name]).hidden = false; sfx('ui');
+    try{ document.exitPointerLock(); }catch(err){}
+    renderScreen();
+  }
+  function closeScreen(silent){
+    if(!screen) return;
+    $(SCREEN_EL[screen]).hidden = true; paused = screenWasPaused; screen = null;
+    if(!silent){ sfx('ui'); saveGame(); }
+  }
+  function renderScreen(){
+    if(screen === 'inv') renderInventory();
+    else if(screen === 'pause') renderPause();
+    else if(screen === 'map') drawBigMap();
+    else if(screen === 'slots') renderSlots();
+  }
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if(cls) n.className = cls; if(text != null) n.textContent = text; return n; };
+  const btn = (label, fn, opts) => { const b = el('button', opts && opts.cls, label); b.type = 'button'; if(opts && opts.disabled) b.disabled = true; b.addEventListener('click', () => { sfx('ui'); fn(b); }); return b; };
+  // a button that needs a second click, for anything destructive
+  const armedBtn = (label, confirmLabel, fn, cls) => btn(label, b => { if(!b.classList.contains('armed')){ b.classList.add('armed'); b.textContent = confirmLabel; return; } fn(); }, { cls });
+  function card(title, color, lines){
+    const c = el('div', 'skc panel'); if(color) c.style.setProperty('--c', color);
+    const top = el('div', 'top'); top.append(el('h3', '', title)); c.append(top);
+    for(const l of lines || []) if(l) c.append(el('p', '', l));
+    return c;
+  }
+  // ----- inventory -----
+  const INV_TABS = [['gear', 'Gear'], ['pouch', 'Pouch'], ['char', 'Character'], ['best', 'Bestiary'], ['quests', 'Quests']];
+  function renderInventory(){
+    const tabs = $('invTabs'); tabs.innerHTML = '';
+    for(const [id, label] of INV_TABS){ const b = btn(label, () => { invTab = id; renderInventory(); }); b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', invTab === id); tabs.append(b); }
+    $('closeInv').textContent = 'Close (' + keyName(SET.bind.inventory) + ')';
+    const body = $('invBody'); body.innerHTML = '';
+    ({ gear:invGear, pouch:invPouch, char:invChar, best:invBestiary, quests:invQuests })[invTab](body);
+  }
+  function invGear(body){
+    const G = gearW(), off = offhandW();
+    body.append(el('div', 'sub', 'Main: ' + G.name + (upgLv() ? ' +' + upgLv() : '') + ' · Off-hand: ' + (off ? off.name : 'none') + ' · Armor: ' + gearA().name));
+    body.append(el('div', 'sect', 'Weapons'));
+    const wg = el('div', 'sk'); body.append(wg);
+    for(const id in WEAPONS){
+      if(!P.owned.has(id)) continue;
+      const g = WEAPONS[id], lv = P.upg[id] || 0, main = P.gear.weapon === id, isOff = P.gear.offhand === id;
+      const c = card(g.name + (lv ? ' +' + lv : ''), main ? '#ffd166' : isOff ? '#7fd8ff' : '#958ca8', [g.desc, gearStats('w', g) + (g.oneHand ? ' · one-handed' : ' · two-handed')]);
+      const row = el('div', 'btns');
+      row.append(btn(main ? 'Main hand' : 'Equip', () => { P.gear.weapon = id; if(P.gear.offhand === id || !g.oneHand) P.gear.offhand = null; applyGear(); renderInventory(); }, { cls:main ? 'on' : '', disabled:main }));
+      if(g.oneHand && !main){
+        if(isOff) row.append(btn('Remove off-hand', () => { P.gear.offhand = null; applyGear(); renderInventory(); }));
+        else row.append(btn('Off-hand', () => { P.gear.offhand = id; applyGear(); renderInventory(); }, { disabled:!G.oneHand }));
+      }
+      c.append(row); wg.append(c);
+    }
+    body.append(el('div', 'sub', 'Dual wielding: put a one-handed weapon in your off-hand while your main weapon is also one-handed. Every swing gets a follow-up off-hand cut and swings a frame faster, but you lose a little clash strength and your guard breaks 25% faster.'));
+    body.append(el('div', 'sect', 'Armor'));
+    const ag = el('div', 'sk'); body.append(ag);
+    for(const id in ARMORS){
+      if(!P.owned.has(id)) continue;
+      const g = ARMORS[id], on = P.gear.armor === id;
+      const c = card(g.name, on ? '#ffd166' : '#958ca8', [g.desc, gearStats('a', g)]);
+      const row = el('div', 'btns'); row.append(btn(on ? 'Equipped' : 'Equip', () => { P.gear.armor = id; applyGear(); renderInventory(); }, { cls:on ? 'on' : '', disabled:on }));
+      c.append(row); ag.append(c);
+    }
+    body.append(el('div', 'sect', 'Trinkets'));
+    const tg = el('div', 'deck'); body.append(tg);
+    const owned = [...P.trinketsOwned];
+    for(let i = 0; i < 2; i++){
+      const l = el('label', 'panel'); l.append('Slot ' + (i + 1));
+      const cur = P.trinkets[i];
+      const opts = [['', owned.length ? 'Empty' : 'None found yet'], ...owned.filter(t => t === cur || !P.trinkets.includes(t)).map(t => [t, trinketInfo(t).name])];
+      l.append(mkSelect(opts, cur || '', v => { P.trinkets[i] = v || null; renderInventory(); }), el('small', '', cur ? trinketInfo(cur).desc : ''));
+      tg.append(l);
+    }
+    if(owned.length){
+      const list = el('div', 'sk'); body.append(list);
+      for(const t of owned){ const info = trinketInfo(t); list.append(card(info.name, P.trinkets.includes(t) ? '#c78dff' : '#5a4a6a', [info.desc + (P.trinkets.includes(t) ? ' (equipped)' : '')])); }
+    }
+  }
+  function invPouch(body){
+    body.append(el('div', 'goldline', 'Gold ' + P.gold + ' · Flasks ' + P.flasks + '/' + flaskCap() + ' · Flask shards ' + P.shards + '/3'));
+    body.append(el('div', 'sect', 'Belt'));
+    const bg = el('div', 'sk'); body.append(bg);
+    BELT.forEach((id, i) => {
+      const I = ITEMS[id], n = P.inv.items[id] || 0, active = I.dur && P.buffs[id] > 0;
+      const c = card(I.name + ' ×' + n, I.hex, [I.desc, 'Key ' + keyName(SET.bind['item' + (i + 1)]) + (active ? ' · active, ' + Math.ceil(P.buffs[id] / 60) + 's left' : '')]);
+      if(I.dur){ const row = el('div', 'btns'); row.append(btn('Use now', () => { useItem(id, true); renderInventory(); }, { disabled:n <= 0 })); c.append(row); }
+      bg.append(c);
+    });
+    body.append(el('div', 'sect', 'Materials'));
+    const mg = el('div', 'sk'); body.append(mg);
+    for(const k in MATS) mg.append(card(MATS[k].name + ' ×' + (P.inv.mats[k] || 0), MATS[k].hex, [k === 'iron' ? 'Dropped on Floor 1.' : k === 'rime' ? 'Dropped on Floor 2.' : 'Dropped on Floor 3 and below.', 'Bram turns these into weapon upgrades.']));
+  }
+  function invChar(body){
+    const g = el('div', 'statgrid panel'); g.style.padding = '12px 14px';
+    const row = (a, b, c) => g.append(el('span', '', a), el('span', '', b), el('span', '', String(c)));
+    row('STR', 'clash strength (with weapon)', P.stats.str + ' → ' + P.str);
+    row('SPD', 'swing and roll speed', P.stats.spd);
+    row('VIT', 'max health', P.stats.vit + ' → ' + P.maxHp + ' HP');
+    row('DEF', 'defense (with gear and trinkets)', P.stats.def + ' → ' + P.def);
+    row('Weapon', G_name(), '×' + (gearW().dmg * upgM()).toFixed(2) + ' dmg');
+    row('Stance', stanceOf().desc, stanceOf().name);
+    row('Flasks', 'heal 40% each', flaskCap());
+    row('Kills', 'this character', kills);
+    row('Deaths', '', deaths);
+    row('Floors', 'cleared', [W.warden, W.rimeKing, W.twins, W.deep].filter(Boolean).length + ' / 4');
+    row('New Game+', '', W.ng || 0);
+    row('Difficulty', DF().desc, DF().name);
+    row('The Pit', 'Colosseum rank', (W.pitRank || 0) + ' / ' + PIT.length);
+    body.append(g);
+    const titles = []; if((W.pitRank || 0) >= 4) titles.push('Pit Fighter'); if((W.pitRank || 0) >= PIT.length) titles.push('Champion of Emberhold'); if(W.deep) titles.push('Delver of the Deep'); if(W.ng) titles.push('Twice-Climbed');
+    body.append(el('div', 'sect', 'Titles'), el('div', 'sub', titles.length ? titles.join(' · ') : 'None yet. Clear floors and climb the Pit.'));
+    body.append(el('div', 'sect', 'Talents'));
+    body.append(el('div', 'sub', [...P.talents].map(t => TALENTS[t].name).join(' · ') || 'None earned yet.'));
+  }
+  const G_name = () => gearW().name + (upgLv() ? ' +' + upgLv() : '') + (offhandW() ? ' & ' + offhandW().name : '');
+  function invBestiary(body){
+    const ids = Object.keys(W.best || {}).filter(t => TYPES[t]);
+    if(!ids.length){ body.append(el('div', 'sub', 'Fight something first. Every enemy you meet gets an entry here.')); return; }
+    body.append(el('div', 'sub', 'Moves fill in as you see them. Kill 3 of a kind to learn its weakness.'));
+    const grid = el('div', 'sk'); body.append(grid);
+    for(const t of ids){
+      const B = W.best[t], T = TYPES[t];
+      const moves = Object.keys(B.m || {}).map(k => MOVE_INFO[k] ? MOVE_INFO[k][0] + ': ' + MOVE_INFO[k][1] : null).filter(Boolean);
+      const weak = (B.k || 0) >= 3 ? 'Weakness: ' + (WEAK[t] || 'none known.') : 'Weakness: defeat ' + (3 - (B.k || 0)) + ' more to learn it.';
+      grid.append(card(T.name + ' · ' + (B.k || 0) + ' killed', '#' + new THREE.Color(T.trim || 0xffffff).getHexString(), [T.tip, ...moves, weak]));
+    }
+  }
+  function invQuests(body){
+    let any = false;
+    for(const id in QUESTS){
+      const q = W.quests[id]; if(!q || q.step < 0) continue; any = true;
+      body.append(card(QUESTS[id].name, q.step === 99 ? '#7fe38a' : '#ffd166', [q.step === 99 ? 'Complete.' : 'Next: ' + QUESTS[id].steps[q.step]]));
+    }
+    if(W.tut && W.tut.step != null && !W.tut.done) { any = true; body.append(card('Lessons at the practice ring', '#cfd8ff', ['Next: ' + TUT[W.tut.step][1]])); }
+    if(!any) body.append(el('div', 'sub', 'No quests yet. Talk to people in Emberhold.'));
+    body.append(el('div', 'sect', 'Bounties'));
+    for(const b of W.bounties){ const d = BOUNTIES[b.id]; if(d) body.append(card(d.text, b.prog >= d.n ? '#7fe38a' : '#9fb4ff', [Math.min(b.prog, d.n) + ' / ' + d.n + ' · ' + d.gold + ' gold' + (b.prog >= d.n ? ' · claim it at the board' : '')])); }
+  }
+  $('closeInv').addEventListener('click', () => closeScreen());
+  // ----- pause menu -----
+  function renderPause(){
+    const box = $('pauseBtns'); box.innerHTML = '';
+    $('pauseInfo').textContent = mode === 'world' ? (AREA ? AREA.name : '') + (W.ng ? ' · New Game+ ' + W.ng : '') + ' · ' + DF().name + ' · save slot ' + curSlot : mode === 'trial' ? 'The Trial' : 'Arena';
+    box.append(btn('Resume', () => closeScreen()));
+    if(mode === 'world'){
+      box.append(btn('Inventory (' + keyName(SET.bind.inventory) + ')', () => openScreen('inv')));
+      box.append(btn('Map (' + keyName(SET.bind.map) + ')', () => openScreen('map')));
+    }
+    box.append(btn('Loadout (' + keyName(SET.bind.loadout) + ')', () => { closeScreen(true); toggleLoadout(); }));
+    box.append(btn('Settings (' + keyName(SET.bind.settings) + ')', () => { closeScreen(true); openSettings(); }));
+    if(mode === 'world') box.append(btn('Save now', b => { saveGame(); b.textContent = 'Saved'; }));
+    box.append(armedBtn('Quit to title', mode === 'world' ? 'Click again: saves and quits' : 'Click again to quit', () => { saveGame(); location.reload(); }));
+  }
+  // ----- big map -----
+  function drawBigMap(){
+    if(!AREA) return;
+    const cv = $('bigmap'), g = cv.getContext('2d'), S = cv.width, h = S / 2, B = AREA.bounds;
+    const ext = B.r ? B.r + 4 : Math.max(B.hw, B.hh) + 4, k = (h - 24) / ext;
+    const X = x => h - x * k, Y = z => h - z * k;
+    $('mapTitle').textContent = AREA.name + (W.ng ? ' · NG+' + W.ng : '') + (isNight() ? ' · Night' : ' · Day');
+    g.clearRect(0, 0, S, S);
+    g.fillStyle = 'rgba(255,255,255,0.03)';
+    if(B.r){ g.beginPath(); g.arc(h, h, B.r * k, 0, TAU); g.fill(); } else g.fillRect(X(B.hw), Y(B.hh), B.hw * 2 * k, B.hh * 2 * k);
+    g.strokeStyle = 'rgba(255,255,255,0.18)'; g.lineWidth = 3;
+    if(B.r){ g.beginPath(); g.arc(h, h, B.r * k, 0, TAU); g.stroke(); } else g.strokeRect(X(B.hw), Y(B.hh), B.hw * 2 * k, B.hh * 2 * k);
+    const dot = (x, y, r, c) => { g.fillStyle = c; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); };
+    const text = (t, x, y, c, size) => { g.font = (size || 16) + 'px Barlow, sans-serif'; g.textAlign = 'center'; g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillText(t, x + 1, y + 1); g.fillStyle = c; g.fillText(t, x, y); };
+    if(AREA.water) for(const w of AREA.water){ g.fillStyle = 'rgba(80,150,170,0.35)'; g.beginPath(); g.arc(X(w.x), Y(w.z), w.r * k, 0, TAU); g.fill(); }
+    if(AREA.camps){
+      g.strokeStyle = 'rgba(170,140,100,0.5)'; g.lineWidth = 6; g.beginPath();
+      AREA.path.forEach((p, i) => i ? g.lineTo(X(p[0]), Y(p[1])) : g.moveTo(X(p[0]), Y(p[1]))); g.stroke();
+      for(const c of AREA.camps){
+        dot(X(c.x), Y(c.z), 10, c.remaining.length ? '#d0453f' : '#4a4452');
+        if(c.eliteType && c.remaining.length){ g.strokeStyle = '#ffc040'; g.lineWidth = 3; g.beginPath(); g.arc(X(c.x), Y(c.z), 14, 0, TAU); g.stroke(); }
+        text(c.name, X(c.x), Y(c.z) - 18, c.remaining.length ? '#ece6f4' : '#958ca8', 15);
+      }
+      g.strokeStyle = W[AREA.boss.flag] ? '#4a4452' : '#ff7a3a'; g.lineWidth = 4; g.beginPath(); g.arc(X(AREA.boss.x), Y(AREA.boss.z), 13 * k, 0, TAU); g.stroke();
+      text(W[AREA.boss.flag] ? 'Boss ring (rematch)' : AREA.boss.title[0], X(AREA.boss.x), Y(AREA.boss.z), W[AREA.boss.flag] ? '#958ca8' : '#ff9a6a', 16);
+    }
+    for(const it of AREA.inter){
+      if(it.cond && !it.cond() && !(it.quest && it.quest())) continue;
+      if(it.secret && !it.secret.seen) continue;
+      const x = X(typeof it.x === 'function' ? it.x() : it.x), y = Y(typeof it.z === 'function' ? it.z() : it.z);
+      g.fillStyle = ICON[it.icon] || '#fff'; g.beginPath(); g.moveTo(x, y - 11); g.lineTo(x + 9, y); g.lineTo(x, y + 11); g.lineTo(x - 9, y); g.fill();
+      if(it.quest && it.quest()) text('!', x, y - 14, '#ffd166', 26);
+      if(it.mapLabel) text(it.mapLabel, x, y + 26, '#cfc6dc', 13);
+    }
+    for(const x of AREA.exits) if(!x.cond || x.cond()){ dot(X(x.x), Y(x.z), 9, '#ffe9b0'); text('to ' + AREAS[x.to].name, X(x.x), Y(x.z) + (x.z < 0 ? -16 : 28), '#ffe9b0', 14); }
+    for(const o of loot) if(o.kind === 'trinket' || o.kind === 'shard') dot(X(o.x), Y(o.z), 6, '#c78dff');
+    if(W.stain && W.stain.area === AREA.id){ dot(X(W.stain.x), Y(W.stain.z), 8, '#7fe38a'); text('your gold', X(W.stain.x), Y(W.stain.z) - 12, '#7fe38a', 13); }
+    for(const e of enemies) if(e.alive && !e.idle) dot(X(e.x), Y(e.z), 6, e.hunter ? '#ff3b5a' : '#ff6b6b');
+    g.save(); g.translate(X(P.x), Y(P.z)); g.rotate(-P.yaw);
+    g.fillStyle = '#fff'; g.strokeStyle = '#14111a'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(0, -18); g.lineTo(12, 13); g.lineTo(0, 7); g.lineTo(-12, 13); g.closePath(); g.fill(); g.stroke();
+    g.restore();
+    $('mapLegend').innerHTML = '';
+    for(const [c, t] of [['#d0453f', 'camp'], ['#ffc040', 'elite camp'], ['#fff0c8', 'shrine'], ['#7fe38a', 'person'], ['#ffd166', 'chest / quest'], ['#ffe9b0', 'exit'], ['#c78dff', 'rare loot'], ['#ff7a3a', 'boss']]){
+      const s = el('span'); const i = el('i'); i.style.background = c; s.append(i, t); $('mapLegend').append(s);
+    }
+  }
+  // ----- save slots -----
+  const SLOTS = ['1', '2', '3'];
+  let curSlot = (function(){ try{ return localStorage.getItem('clashTrial3d.slot') || '1'; }catch(err){ return '1'; } })();
+  const saveKeyFor = slot => 'clashTrial3d.save.v1' + (slot === '1' ? '' : '.s' + slot);
+  function readSlot(slot){ try{ const s = localStorage.getItem(saveKeyFor(slot)); return s ? JSON.parse(s) : null; }catch(err){ return null; } }
+  function slotSummary(S){
+    const w = S.world || {}, floors = [w.warden, w.rimeKing, w.twins, w.deep].filter(Boolean).length;
+    return 'Floors cleared ' + floors + '/4 · ' + (S.gold || 0) + ' gold' + (w.ng ? ' · NG+' + w.ng : '') + (S.savedAt ? ' · last played ' + new Date(S.savedAt).toLocaleDateString() : '');
+  }
+  function startSlot(slot, fresh){
+    curSlot = slot; try{ localStorage.setItem('clashTrial3d.slot', slot); }catch(err){}
+    closeScreen(true); startMode('world', fresh);
+  }
+  function renderSlots(){
+    const list = $('slotList'); list.innerHTML = '';
+    for(const slot of SLOTS){
+      const S = readSlot(slot), c = el('div', 'slotcard panel');
+      c.append(el('h3', '', 'Slot ' + slot + (slot === curSlot ? ' · last used' : '')), el('p', '', S ? slotSummary(S) : 'Empty'));
+      const row = el('div', 'btns');
+      if(S){
+        row.append(btn('Continue', () => startSlot(slot, false), { cls:'main' }));
+        row.append(armedBtn('New game', 'Click again: wipes this slot', () => startSlot(slot, true)));
+        row.append(armedBtn('Delete', 'Click again to delete', () => { try{ localStorage.removeItem(saveKeyFor(slot)); }catch(err){} renderSlots(); }));
+      } else row.append(btn('New game', () => startSlot(slot, true), { cls:'main' }));
+      c.append(row); list.append(c);
+    }
+  }
+  $('slotBack').addEventListener('click', () => closeScreen(true));
 
   const STEP = 1000 / 60;
   let acc = 0, last = performance.now(), filterOn = false, heartNext = 0;
@@ -4838,19 +5915,9 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
   }
   $('startBtn').addEventListener('click', () => startMode('trial'));
   $('arenaBtn').addEventListener('click', () => startMode('arena'));
-  $('worldBtn').addEventListener('click', () => startMode('world', false));
-  (function(){
-    const S = readSave(), nb = $('newGameBtn');
-    if(S){
-      $('worldBtn').textContent = 'Continue adventure';
-      nb.hidden = false;
-      nb.addEventListener('click', () => {
-        // two clicks so nobody wipes a save by accident
-        if(!nb.classList.contains('armed')){ nb.classList.add('armed'); nb.textContent = 'Click again: this wipes your save'; return; }
-        startMode('world', true);
-      });
-    }
-  })();
+  // Adventure: pick a save slot (or go straight in when there are no saves yet)
+  $('worldBtn').addEventListener('click', () => { initAudio(); if(SLOTS.some(readSlot)) openScreen('slots'); else startSlot('1', true); });
+  if(SLOTS.some(readSlot)) $('worldBtn').textContent = 'Adventure: continue';
 
   if(/[?&]test\b/.test(location.search)){
     window.__g = { P, keys, press, mouse, get enemies(){ return enemies; }, tick(){ update(); }, begin, restart, spawnEnemy,
@@ -4858,7 +5925,7 @@ html,body{height:100%;margin:0;background:var(--bg);overflow:hidden;color:var(--
       render(){ updateCamera(); placeSky(); renderFrame(); updateHud(); }, get kills(){ return kills; },
       startMode, handleR, get roomIdx(){ return roomIdx; }, get roomState(){ return roomState; }, get runOver(){ return runOver; }, get deaths(){ return deaths; },
       get AREA(){ return AREA; }, W, CAMPS, enterArea, travel, rest, tryInteract, openMenu, closeMenu, get menuOpen(){ return menuOpen; }, applyGear, saveGame, readSave, BOSS_C, RIVAL_SPOTS, SHRINE_W, worldFrame, get worldT(){ return worldT; },
-      AREAS, RIVALS, lootDrop, talentNote, pollPad, useItem, rollLoot, dropLoot, get loot(){ return loot; }, get knives(){ return knives; }, ITEMS, TRINKETS, upgM, startSpar, endSpar, get sparring(){ return sparring; }, openTalk, qs, questAdvance, PAD, SET, cycleStance, startRematch, applySettings, openSettings, closeSettings, get settingsOpen(){ return settingsOpen; }, get composer(){ return composer; }, renderer, scene, resetCamps, makeElite, renderLoadout, toggleLoadout, skillDef, MOVES, get camPullK(){ return camPullK; } };
+      AREAS, RIVALS, lootDrop, talentNote, pollPad, openScreen, closeScreen, get screen(){ return screen; }, startPit, get pitState(){ return pitState; }, openChest, breakWall, startNGPlus, fastTravel, startTutorial, tutNote, get tut(){ return W.tut; }, finisher, isNight, applyDaylight, inWater, recapHtml, offhandW, trinketInfo, tPow, renderMerchant, curSlot:() => curSlot, readSlot, startSlot, streamHunter, useItem, rollLoot, dropLoot, get loot(){ return loot; }, get knives(){ return knives; }, ITEMS, TRINKETS, upgM, startSpar, endSpar, get sparring(){ return sparring; }, openTalk, qs, questAdvance, PAD, SET, cycleStance, startRematch, applySettings, openSettings, closeSettings, get settingsOpen(){ return settingsOpen; }, get composer(){ return composer; }, renderer, scene, resetCamps, makeElite, renderLoadout, toggleLoadout, skillDef, MOVES, get camPullK(){ return camPullK; } };
   }
 
   setTheme(0);

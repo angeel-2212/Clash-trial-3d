@@ -23,8 +23,12 @@ Inspired by Sekiro and Sword Art Online. Read the enemy's body (there are no war
 | 1-4 | D-pad left/right + up | Belt items: throwing knife, whetstone, iron tonic, swift draught (Adventure) |
 | E | Y | Talk / rest (out of combat) |
 | R | X | Drink a flask, or respawn after dying |
+| I | | Inventory: equip gear anywhere, see your pouch, character sheet, bestiary and quests (Adventure) |
+| M | | Map (Adventure) |
 | K | Start | Loadout (pauses) |
-| O | Back | Settings: rebind keys, sensitivity, FOV, volume, graphics quality |
+| P / Esc | Back | Pause menu: inventory, map, loadout, settings, save, quit to title |
+| O | | Settings: rebind keys, sensitivity, FOV, difficulty, volume, graphics quality |
+| N | | Mute |
 | 1-6 | | Spawn an enemy type (Arena) |
 
 ### Combo rhythm (default deck)
@@ -35,6 +39,10 @@ Inspired by Sekiro and Sword Art Online. Read the enemy's body (there are no war
 ### Core systems
 - **Clashes and exchanges:** swing into their swing as it releases and the blades collide. Chain collisions into an exchange; even clashes lock blades.
 - **Parry rules:** a parried light hit = 0.2s stagger. A parried heavy or skill = a STR clash.
+- **Grab reversals:** parry exactly as a grab lands and you throw them instead.
+- **Plunging attacks:** jump, then attack in the air to slam down and knock enemies off balance.
+- **Execution finishers:** a deathblow that kills plays a short cinematic strike. It's different for swords, heavy weapons and dual wield, and you can't be hit during it.
+- **Dual wield:** a one-handed weapon in the off-hand adds a follow-up cut to every swing.
 - **Anti-spam:**
   - Repeated moves go stale.
   - Enemies learn your patterns. Your opener counts for half, since every string starts with it.
@@ -56,11 +64,15 @@ Inspired by Sekiro and Sword Art Online. Read the enemy's body (there are no war
 ### Adventure
 The open-world mode. It saves automatically in your browser.
 
+- **Save slots:** three of them. Quit to title from the pause menu.
+- **Day and night:** a 12-minute cycle. Night makes enemies tougher and loot better.
 - **Emberhold**, the hub town:
-  - **Bram the smith:** sells gear.
+  - **Bram the smith:** sells gear, upgrades weapons, and fuses two trinkets into one that does both at 70% strength.
+  - **The Pit:** Varga runs a ranked 1v1 ladder of 8 named fighters. The champion fight is against the Mirror. Losing means yielding, never dying.
+  - **Trophy hall:** fills up with boss and rival trophies.
   - **Bounty board:** pays out for kills and challenges.
   - **Shrine:** heals you and sets your respawn point.
-  - **Practice ring:** spar against any enemy you've met, or a training dummy that shows combo damage totals. No gold, no stats, no dying.
+  - **Practice ring:** step-by-step lessons for new players, sparring against any enemy you've met, or a training dummy that shows combo damage totals. No gold, no stats, no dying.
 - **Quests:**
   - **The Missing Scout:** for Captain Hale.
   - **Bram's Masterwork:** for Bram.
@@ -76,6 +88,15 @@ The open-world mode. It saves automatically in your browser.
   - **Cinder Zealots:** maces, and they speed up as they bleed.
   - **Ashbound Executioners:** axes.
   - Floor boss: a pair, **Ash & Ember**. Kill one and the other goes berserk.
+- **Floor 4, the Drowned Sanctum:** a flooded temple where water slows you down.
+  - **Drowned Knights:** they rise again unless the last blow is a deathblow.
+  - **Tidecallers:** spear thrust chains.
+  - Floor boss: the Drowned Mother, who calls the drowned at half health.
+- **Shrines:** rest, fast travel to any shrine you've found, and start **New Game+** after Floor 4 (keep your build, the world gets harder).
+- **Chests and secrets:** every region has guarded chests, hidden ones, a mimic that bites, and a chest walled up behind a cracked wall you have to break.
+- **The Hunter:** after a few minutes in a region (faster at night), an elite starts tracking you and joins whatever fight you're in.
+- **Odo the peddler:** turns up at a different shrine every time you rest, selling rare stock for gold and materials.
+- **The Mirror:** a rare enemy that fights with your own combat deck and favorite skill.
 - **Rivals:**
   - **Vesk:** remembers your habits.
   - **Gorrun:** resists whatever hurt him most last time.
@@ -90,6 +111,12 @@ The open-world mode. It saves automatically in your browser.
   - **Gold pouches.**
   - **Trinkets:** every enemy type has its own. You get two trinket slots.
 - **Death:** you drop your gold where you fell. Get back to it before you die again. Stats and skills stay.
+- **Death recap:** in every mode, the death screen says what killed you, with which move, and one tip about it.
+- **Bestiary:** every enemy gets an entry with the moves you've seen. Kill 3 of a kind to learn its weakness.
+- **Difficulty:**
+  - **Story:** enemies hit half as hard, wind up slower, and never read you.
+  - **Normal:** the game as designed.
+  - **Hard:** enemies hit harder, wind up faster, and read your patterns sooner.
 
 ### Your build (press K)
 - **Combat deck:** pick which move sits in each part of your string: 3 click slots and 2 pause slots. Moves you can learn: Lunge, Wide Arc, Whirlwind.
